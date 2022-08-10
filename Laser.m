@@ -34,7 +34,22 @@ classdef Laser
         current {mustBeNumeric} % 40 mA
         heater_current {mustBeNumeric} % 550mA
     end
-    properties %(Access = private)
+    properties (Access = private, Constant)
+        UART_ERROR        = (0x00)
+        UART_SETUP_NO     = (0x03)
+        UART_SAVE_SETUP   = (0x04)
+        UART_DEVICE_STATE = (0x05)
+        UART_LASER_CURRENT= (0x13)
+        UART_EN_HEAT_PWR  = (0x20)
+        UART_I_HEAT0      = (0x22)
+        UART_I_HEAT1      = (0x23)
+        UART_EN_TEC       = (0x30)
+        UART_TMP          = (0x34)
+        UART_TMP_SET      = (0x35)
+        OFF               = ('00')
+        ON                = ('01')
+    end
+    properties (Access = private)
        sport
        digital_temperature {mustBeNumeric}
        digital_current {mustBeNumeric}
@@ -59,19 +74,92 @@ classdef Laser
 
             %obj.sport = serialport('COM6', 38400, 'DataBits', 8);
             obj.set_temp();
-            %obj.set_current();
-            %obj.set_heater_current();
+            obj.set_current();
+            obj.set_heater_current();
+            obj.enable_TEC();
+            obj.check_ready();
+            obj.enable_laser_heater_power();
         end
         function obj = set_temp(obj)
-            msg = [0x2a, 0x06, 0x35];
+            msg = [0x2a, 0x06, obj.UART_TMP_SET];
             bytes_vector = obj.dec2bytes(obj.digital_temperature);
             msg = [msg, bytes_vector];
             msg = [msg, obj.get_checksum(msg)];
             %write(obj.sport, msg,'uint8');
-            data = read(obj.sport,4,"uint8");
+%             data = read(obj.sport,4,"uint8");
+            %deal with message from device
         end
         
+        function obj = set_current(obj)
+            msg = [0x2a, 0x06, obj.UART_LASER_CURRENT];
+            bytes_vector = obj.dec2bytes(obj.digital_current);
+            msg = [msg, bytes_vector];
+            msg = [msg, obj.get_checksum(msg)];
+            %write(obj.sport, msg, 'uint8');
+%             data = read(obj.sport,4,'uint8');
+            %deal with message from device
+        end
         
+        function obj = set_heater_current(obj)
+            msg = [0x2a, 0x6, obj.UART_LASER_CURRENT];
+            bytes_vector0 = obj.dec2bytes(obj.digital_heater_current0);
+            bytes_vector1 = obj.dec2bytes(obj.digital_heater_current1);
+            msg = [msg, bytes_vector0, bytes_vector1];
+            msg = [msg, obj.get_checksum(msg)];
+            %write(obj.sport, msg, 'uint8');
+%             data = read(obj.sport,4,'uint8');
+            %deal with message from device
+        end
+        
+        function obj = enable_TEC(obj)
+            msg = [0x2a, 0x05, obj.UART_EN_TEC];
+            bytes = uint8(hex2dec(obj.ON));
+            msg = [msg, bytes];
+            msg = [msg, obj.get_checksum(msg)];
+            %write(obj.sport, msg, 'uint8');
+%             data = read(obj.sport,4,'uint8');
+            %deal with message from device
+        end
+        
+        function obj = check_ready(obj)
+            msg = [0xaa, 0x05, obj.UART_DEVICE_STATE];
+            msg = [msg, obj.get_checksum(msg)];
+%             while 1
+                %write(obj.sport, msg, 'uint8');
+                %data = read(obj.sport,4,'uint8');
+                %check message returns 2
+                %if condition
+%                     break
+%             end
+        end
+        
+        function obj = enable_laser_heater_power(obj)
+            msg = [0x2a, 0x05, obj.UART_EN_HEAT_PWR];
+            bytes = uint8(hex2dec(obj.ON));
+            msg = [msg, bytes];
+            msg = [msg, obj.get_checksum(msg)];
+            %write(obj.sport, msg, 'uint8');
+%             data = read(obj.sport,4,'uint8');
+            %deal with message from device
+        end
+        
+        function obj = switch_off(obj)
+            msg = [0x2a, 0x05, obj.UART_EN_HEAT_PWR];
+            bytes = uint8(hex2dec(obj.OFF));
+            msg = [msg, bytes];
+            msg = [msg, obj.get_checksum(msg)];
+            %write(obj.sport, msg, 'uint8');
+%             data = read(obj.sport,4,'uint8');
+            %deal with message from device
+
+            msg = [0x2a, 0x05, obj.UART_EN_TEC];
+            bytes = uint8(hex2dec(obj.OFF));
+            msg = [msg, bytes];
+            msg = [msg, get_checksum(msg)];
+            %write(obj.sport, msg, 'uint8');
+%             data = read(obj.sport,4,'uint8');
+            %deal with message from device
+        end
         
         function obj = get_error(obj, error_code)
             error(obj.errors(error_code+1));
