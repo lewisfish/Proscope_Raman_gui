@@ -1,5 +1,6 @@
 classdef Laser
-    % class to control FBH diode laser for driving the Raman Spectroscopy measurements.
+% class to control FBH diode laser for driving the Raman Spectroscopy measurements.
+%
 %  To talk to the laser we use the following packet protocol:
 %       0th byte: The first bit sets whether to read (1) or write (0). The following 7 bits set the address
 %       1st byte: This transmits the length of the packet being sent.
@@ -21,7 +22,7 @@ classdef Laser
 %    UART_EN_TEC        0x30     1      1       Switch on Peltier element (off=0, on=1)
 %    UART_TMP           0x34     /      2       Read the actual laser temperature
 %    UART_TMP_SET       0x35     2      2       Set target temperature
-
+%
 %       Error codes:
 %           NO_ERROR                        0
 %           ERROR_TIMEOUT_BEFORE_1st_BYTE   1
@@ -31,10 +32,9 @@ classdef Laser
 %           ERROR_CHECKSUM                  7
 
     properties
-        % public properties that are set by the user
-        temperature {mustBeNumeric} % 25 C
-        current {mustBeNumeric} % 40 mA
-        heater_current {mustBeNumeric} % 550mA
+        temperature {mustBeNumeric} % Target temperature of the laser. Default value is 25 C
+        current {mustBeNumeric} % Laser current. Default value is 40 mA
+        heater_current {mustBeNumeric} % Current for the laser heater drivers. Default value is 550mA
     end
     properties (Access = private, Constant)
         % private properties used internally so that "magic numbers" are removed
@@ -63,7 +63,8 @@ classdef Laser
     end
     methods
         function obj = Laser(temperature, current, heater_current)
-            % init laser
+            % Init laser. Converts input variables into "digital" variables and communicates all
+            % values to the laser. Finally turns on laser.
             arguments
                 % default arguments
                 temperature = 25
@@ -89,7 +90,7 @@ classdef Laser
             obj.enable_laser_heater_power();
         end
         function obj = set_temp(obj)
-            % set target temperature of laser in C
+            % Set target temperature of laser in C
             msg = [0x2a, 0x06, obj.UART_TMP_SET];
             bytes_vector = obj.dec2bytes(obj.digital_temperature);
             msg = [msg, bytes_vector];
@@ -100,7 +101,7 @@ classdef Laser
         end
         
         function obj = set_current(obj)
-            % se the the laser current in mA
+            % Set the the laser current in mA
             msg = [0x2a, 0x06, obj.UART_LASER_CURRENT];
             bytes_vector = obj.dec2bytes(obj.digital_current);
             msg = [msg, bytes_vector];
@@ -111,7 +112,7 @@ classdef Laser
         end
         
         function obj = set_heater_current(obj)
-            % se the heater current for driver 0 and 1 in mA
+            % Set the heater current for driver 0 and 1 in mA
             msg = [0x2a, 0x6, obj.UART_LASER_CURRENT];
             bytes_vector0 = obj.dec2bytes(obj.digital_heater_current0);
             bytes_vector1 = obj.dec2bytes(obj.digital_heater_current1);
@@ -134,7 +135,7 @@ classdef Laser
         end
         
         function obj = check_ready(obj)
-            % check device is ready to be turned on
+            % Check device is ready to be turned on. Waits until confirmation message is recieved.
             msg = [0xaa, 0x05, obj.UART_DEVICE_STATE];
             msg = [msg, obj.get_checksum(msg)];
 %             while 1
@@ -147,7 +148,7 @@ classdef Laser
         end
         
         function obj = enable_laser_heater_power(obj)
-            % turn on the laser heater
+            % Turn on the laser heater
             msg = [0x2a, 0x05, obj.UART_EN_HEAT_PWR];
             bytes = uint8(hex2dec(obj.ON));
             msg = [msg, bytes];
@@ -158,7 +159,7 @@ classdef Laser
         end
         
         function obj = switch_off(obj)
-            % turn off laser and heater
+            % Turn off laser and heater
             msg = [0x2a, 0x05, obj.UART_EN_HEAT_PWR];
             bytes = uint8(hex2dec(obj.OFF));
             msg = [msg, bytes];
@@ -177,21 +178,20 @@ classdef Laser
         end
         
         function obj = get_error(obj, error_code)
-            % retreive error code message
+            % Retreive error code message
             error(obj.errors(error_code+1));
         end
     end
     methods (Static)
         function out = dec2bytes(val)
-            % convert decimal to hexstring then to uint8 vector
+            % Convert decimal to hexstring then to uint8 vector
 %             https://uk.mathworks.com/matlabcentral/answers/391490-how-can-i-represent-a-hexadecimal-string-in-a-128-bit-format-in-matlab
             hexstr = dec2hex(val);
             byte_hex = string(permute(reshape(hexstr, 2, 2),[2 1]))';
             out = uint8(hex2dec(byte_hex));
         end
         function checksum = get_checksum(msg)
-            % compute the checksum of a message.
-            % carries out bitwise XOR of message e.g a^b^c^d for message msg = [a, b, c, d]
+            % Compute the checksum of a message. Carries out bitwise XOR of message e.g a^b^c^d for message msg = [a, b, c, d]
             checksum = bitxor(msg(1), msg(2));
             for n = 3:length(msg)
                 checksum = bitxor(checksum, msg(n));
