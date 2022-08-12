@@ -34,7 +34,7 @@ classdef Laser
     properties
         temperature {mustBeNumeric} % Target temperature of the laser. Default value is 25 C
         current {mustBeNumeric} % Laser current. Default value is 40 mA
-        heater_current {mustBeNumeric} % Current for the laser heater drivers. Default value is 550mA
+        heater_current {mustBeNumeric} % Current for the laser heater drivers. This value is split evenly between the two drivers. Default value is 550mA
     end
     properties (Access = private, Constant)
         % private properties used internally so that "magic numbers" are removed
@@ -87,7 +87,7 @@ classdef Laser
             obj.set_heater_current();
             obj.enable_TEC();
             obj.check_ready();
-            obj.enable_laser_heater_power();
+%             obj.enable_laser_heater_power();
         end
         function obj = set_temp(obj)
             % Set target temperature of laser in C
@@ -171,7 +171,7 @@ classdef Laser
             msg = [0x2a, 0x05, obj.UART_EN_TEC];
             bytes = uint8(hex2dec(obj.OFF));
             msg = [msg, bytes];
-            msg = [msg, get_checksum(msg)];
+            msg = [msg, obj.get_checksum(msg)];
             %write(obj.sport, msg, 'uint8');
 %             data = read(obj.sport,4,'uint8');
             %deal with message from device
