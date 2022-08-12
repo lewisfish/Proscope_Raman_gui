@@ -81,7 +81,7 @@ classdef Laser
             obj.digital_heater_current1 = 218 * (obj.heater_current / 2.);
     
             % open communication to the laser and set variables on device
-            %obj.sport = serialport('COM6', 38400, 'DataBits', 8);
+%             obj.sport = serialport('COM4', 38400, 'DataBits', 8);
             obj.set_temp();
             obj.set_current();
             obj.set_heater_current();
@@ -95,9 +95,13 @@ classdef Laser
             bytes_vector = obj.dec2bytes(obj.digital_temperature);
             msg = [msg, bytes_vector];
             msg = [msg, obj.get_checksum(msg)];
-            %write(obj.sport, msg,'uint8');
-%             data = read(obj.sport,4,"uint8");
-            %deal with message from device
+%             write(obj.sport, msg,'uint8');
+%             data = read(obj.sport,4,"uint8"); % message recieved should be 0x2a 0x04 0x35 0x1b
+
+%             data = [0x2a, 0x05, 0x00, 0x01, 0x2a]; % dummy data with wrong checksum
+%             data = [0x2a, 0x05, 0x00, 0x01, 0x2e]; % dummy data with an error code. Need to check this is actually what is produced.
+            data = [0x2a, 0x04, 0x35, 0x1b]; % dummy data
+            obj.check_error(data, obj.UART_TMP_SET, 'set temperature');
         end
         
         function obj = set_current(obj)
@@ -106,21 +110,32 @@ classdef Laser
             bytes_vector = obj.dec2bytes(obj.digital_current);
             msg = [msg, bytes_vector];
             msg = [msg, obj.get_checksum(msg)];
-            %write(obj.sport, msg, 'uint8');
-%             data = read(obj.sport,4,'uint8');
-            %deal with message from device
+%             write(obj.sport, msg, 'uint8');
+%             data = read(obj.sport,4,'uint8'); % message recieved should be 0x2a 0x04 0x13 0x3d
+            data = [0x2a, 0x04, 0x13, 0x3d];  % dummy data
+            obj.check_error(data, obj.UART_LASER_CURRENT, 'set current');
         end
         
         function obj = set_heater_current(obj)
             % Set the heater current for driver 0 and 1 in mA
-            msg = [0x2a, 0x6, obj.UART_LASER_CURRENT];
+            msg = [0x2a, 0x6, obj.UART_I_HEAT0];
             bytes_vector0 = obj.dec2bytes(obj.digital_heater_current0);
-            bytes_vector1 = obj.dec2bytes(obj.digital_heater_current1);
-            msg = [msg, bytes_vector0, bytes_vector1];
+            msg = [msg, bytes_vector0];
             msg = [msg, obj.get_checksum(msg)];
             %write(obj.sport, msg, 'uint8');
-%             data = read(obj.sport,4,'uint8');
-            %deal with message from device
+%             data = read(obj.sport,4,'uint8'); % message recieved should be 0x2a 0x04 0x22 0x0c
+            data = [0x2a, 0x04, 0x22, 0x0c];  % dummy data
+            obj.check_error(data, obj.UART_I_HEAT0, 'set heater current 0');
+            
+   
+            msg = [0x2a, 0x6, obj.UART_I_HEAT1];
+            bytes_vector1 = obj.dec2bytes(obj.digital_heater_current1);
+            msg = [msg, bytes_vector1];
+            msg = [msg, obj.get_checksum(msg)];
+            %write(obj.sport, msg, 'uint8');
+%             data = read(obj.sport,4,'uint8'); % message recieved should be 0x2a 0x04 0x23 0x0d
+            data = [0x2a, 0x04, 0x23, 0x0d];  % dummy data
+            obj.check_error(data, obj.UART_I_HEAT1, 'set heater current 1');
         end
         
         function obj = enable_TEC(obj)
@@ -130,21 +145,26 @@ classdef Laser
             msg = [msg, bytes];
             msg = [msg, obj.get_checksum(msg)];
             %write(obj.sport, msg, 'uint8');
-%             data = read(obj.sport,4,'uint8');
-            %deal with message from device
+%             data = read(obj.sport,4,'uint8'); % message recieved should be 0x2a 0x04 0x30 0x1e
+            data = [0x2a, 0x04, 0x30, 0x1e]; % dummy data
+            obj.check_error(data, obj.UART_EN_TEC, 'enable TEC');
         end
         
         function obj = check_ready(obj)
             % Check device is ready to be turned on. Waits until confirmation message is recieved.
             msg = [0xaa, 0x05, obj.UART_DEVICE_STATE];
             msg = [msg, obj.get_checksum(msg)];
-%             while 1
+            while 1
                 %write(obj.sport, msg, 'uint8');
-                %data = read(obj.sport,4,'uint8');
-                %check message returns 2
-                %if condition
-%                     break
-%             end
+                %data = read(obj.sport,4,'uint8'); % message recieved should be 0xaa 0x05 0x05 0x02 0xa8
+                data = [0xaa, 0x05, 0x05, 0x02, 0xa8]; % dummy data
+                obj.check_error(data, obj.UART_DEVICE_STATE, 'check ready');
+
+                %check message returns 0x02 at position data(4)
+                if data(4) == 0x02
+                    break
+                end
+            end
         end
         
         function obj = enable_laser_heater_power(obj)
@@ -154,8 +174,9 @@ classdef Laser
             msg = [msg, bytes];
             msg = [msg, obj.get_checksum(msg)];
             %write(obj.sport, msg, 'uint8');
-%             data = read(obj.sport,4,'uint8');
-            %deal with message from device
+%             data = read(obj.sport,4,'uint8'); % message recieved should be 0x2a 0x04 0x20 0x0e
+            data = [0x2a, 0x04, 0x20, 0x0e];  % dummy data
+            obj.check_error(data, obj.UART_EN_HEAT_PWR, 'enable laser heater power');
         end
         
         function obj = switch_off(obj)
@@ -165,22 +186,37 @@ classdef Laser
             msg = [msg, bytes];
             msg = [msg, obj.get_checksum(msg)];
             %write(obj.sport, msg, 'uint8');
-%             data = read(obj.sport,4,'uint8');
-            %deal with message from device
+%             data = read(obj.sport,4,'uint8'); % message recieved should be 0x2a 0x04 0x20 0x0e
+            data = [0x2a, 0x04, 0x20, 0x0e]; % dummy data
+            obj.check_error(data, obj.UART_EN_HEAT_PWR, 'disable laser heater power');
 
             msg = [0x2a, 0x05, obj.UART_EN_TEC];
             bytes = uint8(hex2dec(obj.OFF));
             msg = [msg, bytes];
             msg = [msg, obj.get_checksum(msg)];
             %write(obj.sport, msg, 'uint8');
-%             data = read(obj.sport,4,'uint8');
-            %deal with message from device
+%             data = read(obj.sport,4,'uint8'); % message recieved should be 0x2a 0x04 0x30 0x1e
+            data = [0x2a, 0x04, 0x30, 0x1e]; % dummy data
+            obj.check_error(data, obj.UART_EN_TEC, 'disable TEC');
         end
         
-        function obj = get_error(obj, error_code)
+        function out = get_error(obj, error_code)
             % Retreive error code message
-            error(obj.errors(error_code+1));
+            out = obj.errors(error_code+1);
         end
+        
+        function obj = check_error(obj, msg, cmd, location)
+           if obj.get_checksum(msg(1:length(msg)-1)) ~= msg(end)
+               error('Checksum recieved after %s is wrong!', location);
+            end
+            % check if error is raised
+            if msg(3) ~= cmd
+                disp(msg)
+                err_code = obj.get_error(msg(4));
+                error('In %s, device returned the following error: %s',location,err_code);
+            end
+        end
+        
     end
     methods (Static)
         function out = dec2bytes(val)
