@@ -82,6 +82,8 @@ classdef Laser
     
             % open communication to the laser and set variables on device
 %             obj.sport = serialport('COM4', 38400, 'DataBits', 8);
+            % check if it is always com4 if not to write code to check for siliconlabs as per
+            % datasheet
             obj.set_temp();
             obj.set_current();
             obj.set_heater_current();
