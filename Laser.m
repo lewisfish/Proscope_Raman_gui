@@ -87,6 +87,7 @@ classdef Laser
             obj.set_heater_current();
             obj.enable_TEC();
             obj.check_ready();
+            obj.wait_for_stable();
 %             obj.enable_laser_heater_power();
         end
         function obj = set_temp(obj)
@@ -164,6 +165,20 @@ classdef Laser
                 if data(4) == 0x02
                     break
                 end
+            end
+        end
+        
+        function obj = wait_for_stable(obj)
+            msg = [0xaa, 0x04, obj.UART_TMP];
+            msg = [msg, obj.get_checksum(msg)];
+            while 1
+                write(obj.sport, msg, 'uint8');
+                data = read(obj.sport, 6,'uint8');
+                temp = data(4:5);
+                if cond == true
+                    break
+                end
+                pause(0.5); % sleep for 0.5s and repeat
             end
         end
         
