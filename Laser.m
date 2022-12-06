@@ -54,7 +54,7 @@ classdef Laser
     end
     properties (Access = private)
        % private properties used internally
-       sport
+       sport % serial port
        digital_temperature {mustBeNumeric}
        digital_current {mustBeNumeric}
        digital_heater_current0 {mustBeNumeric}
@@ -89,7 +89,7 @@ classdef Laser
             obj.set_heater_current();
             obj.enable_TEC();
             obj.check_ready();
-            obj.wait_for_stable();
+            % obj.wait_for_stable();
 %             obj.enable_laser_heater_power();
         end
         function obj = set_temp(obj)
@@ -121,6 +121,7 @@ classdef Laser
         
         function obj = set_heater_current(obj)
             % Set the heater current for driver 0 and 1 in mA
+            % ultimately sets the laser wavelength.
             msg = [0x2a, 0x6, obj.UART_I_HEAT0];
             bytes_vector0 = obj.dec2bytes(obj.digital_heater_current0);
             msg = [msg, bytes_vector0];
