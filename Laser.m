@@ -84,6 +84,7 @@ classdef Laser
 %             obj.sport = serialport('COM4', 38400, 'DataBits', 8);
             % check if it is always com4 if not to write code to check for siliconlabs as per
             % datasheet
+            % try this https://uk.mathworks.com/matlabcentral/answers/110249-how-can-i-identify-com-port-devices-on-windows
             obj.set_temp();
             obj.set_current();
             obj.set_heater_current();
