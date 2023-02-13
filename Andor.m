@@ -1,16 +1,12 @@
-classdef Andor
-    
-    properties
-    
-    end
+classdef Andor < handle
     properties (Access = private, Constant)
         % private properties used internally so that "magic numbers" are removed
         % Read Modes
-        FVB         = 1
-        MultiTrack  = 2
-        RandomTrack = 3
-        SingleTrack = 4
-        Image       = 5
+        FVB         = 0
+        MultiTrack  = 1
+        RandomTrack = 2
+        SingleTrack = 3
+        Image       = 4
         % Acquisition Modes
         SingleScan   = 1
         Accumulate   = 2
@@ -18,114 +14,77 @@ classdef Andor
         FastKinetics = 4
         RunTillAbort = 5
         % Trigger Modes
-        Internal = 1
-        External = 2
-        ExternalStart = 3
-        ExternalExposure = 4
-        ExternalFVBEM = 5
-        Software = 6
+        Internal = 0
+        External = 1
+        ExternalStart = 6
+        ExternalExposure = 7
+        ExternalFVBEM = 9
+        Software = 10
+        ExternalChargeShifting = 12
     end
     properties (Access = private)
        % private properties used internally
+       minTemp
+       maxTemp
        CCDTemp
        AquistionMode
        ExposureTime
        ReadMode
        TriggerMode
        PreAmpGain
+       XPixels
+       YPixels
+%        spectra
     end
-    
+    properties
+      abortSignal
+    end
+   
     methods
         function obj = Andor(CCDTemp, AquistionMode, ExposureTime, ReadMode, TriggerMode, PreAmpGain)
             arguments
                 CCDTemp = -70.0
-                AquistionMode = 1
-                ExposureTime = 5 %seconds
+                AquistionMode = 1 % single scan
+                ExposureTime = 0.01 % seconds
                 ReadMode = 0 % FVB
-                TriggerMode = 1
-                PreAmpGain = 1
-            end
-            addpath("Andor/");
-            
+                TriggerMode = 0 % internal
+                PreAmpGain = 1 % 1x
+            end        
+%             addpath('C:\Program Files\MATLAB\R2021a\toolbox\Andor')
+
+            % set variables for spectrometer
             obj.AquistionMode = AquistionMode;
             obj.ExposureTime = ExposureTime;
             obj.ReadMode = ReadMode;
             obj.TriggerMode = TriggerMode;
             obj.PreAmpGain = PreAmpGain;
+            obj.abortSignal = 0;
 
+            [ret, obj.minTemp, obj.maxTemp] = GetTemperatureRange();
+            CheckWarning(ret);
+            obj.SetCCDTemp(CCDTemp)
+            
             ret = AndorInitialize('');
             CheckError(ret);
             
-            [ret] = CoolerON();
+            % use catch exits so use this.
+           
+            [ret]=SetAcquisitionMode(obj.AquistionMode);
             CheckWarning(ret);
-            
-            [ret, minTemp, maxTemp] = GetTemperatureRange();
+            [ret]=SetExposureTime(obj.ExposureTime);                  %   Set exposure time in seconds
             CheckWarning(ret);
-            if obj.CCDTemp < minTemp || obj.CCDTemp > maxTemp
-                obj.CCDTemp = -70.0;
-            else
-                obj.CCDTemp = CCDTemp;
-            end
-            % make this seperate function
-            ret = setTemperarture(obj.CCDTemp);
+            [ret]=SetReadMode(obj.ReadMode);                         
             CheckWarning(ret);
-            [ret, temp] = GetTemperature();
-            while ret ~= atmcd.DRV_TEMPERATURE_STABALIZED
-                msg = num2str(temp);
-                fprintf(msg);
-                pause(1);
-                [ret, temp] = GetTemperature();
-                if ret == atmcd.DRV_NOT_INITIALIZED || ret == atmcd.DRV_ACQUIRING || ret == atmcd.DRV_ERROR_ACK || ret == atmcd.DRV_TEMPERATURE_OFF
-                    warning('Temperature setting error occured!')
-                    break;
-                end
-            end
-
-            % make function(s) for aquisition loop
-            % make function for shutdown
-            % check for crash hadling in matlab
-                % try catch exits so use this.
-            
-            [ret]=SetAcquisitionMode(obj.AquistionMode);                  %   Set acquisition mode; 1 for Single Scan
-            CheckWarning(ret);
-            [ret]=SetExposureTime(obj.ExposureTime);                  %   Set exposure time in second
-            CheckWarning(ret);
-            [ret]=SetReadMode(obj.ReadMode);                         %   Set read mode; 4 for FVB
-            CheckWarning(ret);
-            [ret]=SetTriggerMode(obj.TriggerMode);                      %   Set internal trigger mode
-            CheckWarning(ret);
-            [ret]=SetShutter(1, 1, 0, 0);                 %   Open Shutter
-            CheckWarning(ret);
-            [ret,XPixels, YPixels]=GetDetector();         %   Get the CCD size
-            CheckWarning(ret);
-            [ret]=SetImage(1, 1, 1, XPixels, 1, YPixels); %   Set the image size
+            [ret]=SetTriggerMode(obj.TriggerMode);                      
             CheckWarning(ret);
 
-            
-            disp('Starting Acquisition');
-            [ret] = StartAcquisition();                   
+            [ret, obj.XPixels, obj.YPixels]=GetDetector();         %   Get the CCD size
             CheckWarning(ret);
-
-            [ret,gstatus]=AndorGetStatus;
+            [ret]=SetImage(1, 1, 1, obj.XPixels, 1, obj.YPixels); %   Set the image size
             CheckWarning(ret);
-            while(gstatus ~= atmcd.DRV_IDLE)
-              pause(1.0);
-              disp('Acquiring');
-              [ret,gstatus]=AndorGetStatus;
-              CheckWarning(ret);
-            end
+        end
 
-
-            [ret, imageData] = GetMostRecentImage(XPixels);
-            CheckWarning(ret);
-
-            if ret == atmcd.DRV_SUCCESS
-                plot(imageData);
-            end
-
-            
-            [ret]=SetShutter(1, 2, 1, 1); %close shutter
-            CheckWarning(ret);
+        function obj = ShutDownSafe(obj)
             [ret, iCoolerStatus] = IsCoolerOn();
             CheckWarning(ret);
             if iCoolerStatus
@@ -134,10 +93,81 @@ classdef Andor
             end
             %[ret] = SetCoolerMode(1); % keep cooler on;
             %CheckWarning(ret);
-            
-            [ret]=AndorShutDown;
+           
+            [ret]=AndorShutDown();
+            CheckWarning(ret);
+        end
+        
+        function [waves, spectra] = AquireSpectra(obj)
+           
+            [ret]=SetShutter(1, 1, 0, 0); %   Open Shutter
+            CheckWarning(ret);
+        
+            disp('Starting Acquisition');
+            [ret] = StartAcquisition();                  
             CheckWarning(ret);
 
+            [ret,gstatus]=AndorGetStatus;
+            CheckWarning(ret);
+            while(gstatus ~= atmcd.DRV_IDLE)
+                if obj.abortSignal == 1
+                    ret = AbortAcquisition();
+                    CheckWarning(ret);
+                    obj.abortSignal = 0;
+                    break
+                end
+              pause(1.0);
+              disp('Acquiring');
+              [ret,gstatus]=AndorGetStatus;
+              CheckWarning(ret);
+            end
+
+            [ret, imageData] = GetMostRecentImage(XPixels);
+            CheckWarning(ret);
+
+            if ret == atmcd.DRV_SUCCESS
+               spectra = imageData;
+               waves = linspace(0,3000, length(spectra))';
+%                 plot(spectra);
+            else
+                spectra = zeros(3000, 1);
+                waves = linspace(0, 3000, length(spectra))';
+            end
+%            spectra =rand(3000, 1);
+%            waves = linspace(0,3000, 3000)';
+            [ret]=SetShutter(1, 2, 1, 1); %close shutter
+            CheckWarning(ret);
+        end
+        
+        function obj = CoolCCD(obj)
+            
+            % turn on cooler
+            [ret] = CoolerON();
+            CheckWarning(ret);
+           
+            % wait for CCD to cool         
+            ret = SetTemperature(obj.CCDTemp);
+            CheckWarning(ret);
+            [ret, temp] = GetTemperature();
+            while ret ~= atmcd.DRV_TEMP_STABILIZED
+                msg = num2str(temp);
+                fprintf(msg);
+                pause(1);
+                [ret, temp] = GetTemperature();
+                if ret == atmcd.DRV_NOT_INITIALIZED || ret == atmcd.DRV_ACQUIRING || ret == atmcd.DRV_ERROR_ACK || ret == atmcd.DRV_TEMPERATURE_OFF
+                    warning('Error setting Temperature!')
+                    break;
+                end
+            end
+        end 
+
+        function SetCCDTemp(obj, temp)
+            
+            if temp < obj.minTemp || temp > obj.maxTemp
+                obj.CCDTemp = -70.0;
+            else
+               obj.CCDTemp = temp;
+            end
         end
     end
 end
