@@ -40,14 +40,13 @@ classdef Andor < handle
        CentralWavelength
        AxisWavelength
        numbGratings
-       
     end
     properties
       abortSignal
     end
    
     methods
-        function obj = Andor(CCDTemp, AquistionMode, ExposureTime, ReadMode, TriggerMode, PreAmpGain)
+        function obj = Andor(CCDTemp, AquistionMode, ExposureTime, ReadMode, TriggerMode, PreAmpGain, slitWidth, centralWavelength)
             arguments
                 CCDTemp = -70.0
                 AquistionMode = 1 % single scan
@@ -55,6 +54,8 @@ classdef Andor < handle
                 ReadMode = 0 % FVB
                 TriggerMode = 0 % internal
                 PreAmpGain = 1 % 1x
+                slitWidth = 150 % um
+                centralWavelength = 785.0; % nm
             end        
 %             addpath('C:\Program Files\MATLAB\R2021a\toolbox\Andor')
 
@@ -65,16 +66,16 @@ classdef Andor < handle
             obj.TriggerMode = TriggerMode;
             obj.PreAmpGain = PreAmpGain;
             obj.abortSignal = 0;
+            obj.CentralWavelength = centralWavelength;
+            obj.SlitWidth = slitWidth;
 
-            [ret, obj.minTemp, obj.maxTemp] = GetTemperatureRange();
-            CheckWarning(ret);
-            obj.SetCCDTemp(CCDTemp)
-            
-            ret = AndorInitialize('');
+             ret = AndorInitialize('');
             CheckError(ret);
             
-            % use catch exits so use this.
-           
+            [ret, obj.minTemp, obj.maxTemp] = GetTemperatureRange();
+            CheckWarning(ret);
+            obj.SetCCDTemp(CCDTemp)           
+
             [ret]=SetAcquisitionMode(obj.AquistionMode);
             CheckWarning(ret);
             [ret]=SetExposureTime(obj.ExposureTime);                  %   Set exposure time in seconds
@@ -89,8 +90,14 @@ classdef Andor < handle
             [ret]=SetImage(1, 1, 1, obj.XPixels, 1, obj.YPixels); %   Set the image size
             CheckWarning(ret);
             
+            obj.setupShamrock();
             
-            % setup shamrock grating
+        end
+
+        
+        function obj = setupShamrock(obj)
+
+           % setup shamrock grating
             [ret] = ShamrockInitialize('');
             ShamrockCheckError(ret);
             if ret == Shamrock.SHAMROCK_SUCCESS
@@ -99,41 +106,48 @@ classdef Andor < handle
                 disp('Error occurred during Shamrock initialization!')
             end           
             
-%             [ret, obj.numbGratings] = ShamrockGetNumberGratings(Andor.ShamrockDev);
-%             ShamrockCheckWarning(ret);
-
             [ret, deviceCount] = ShamrockGetNumberDevices();
-            %             ShamrockCheckWarning(ret);
+            ShamrockCheckWarning(ret);
             if ret == Shamrock.SHAMROCK_SUCCESS
                 if deviceCount >1 %== 2 %strange in lab 106, return deviceCount 3!!!!increased from 2 to 3 in 22/04/2019
-                    ShamrockDev = 0;
+                    obj.shamrockDev = 0;
                 else
-                    ShamrockDev = deviceCount-1;
+                    obj.shamrockDev = deviceCount-1;
                 end
             end    
 
-%             [ret, obj.CurrentGrating] = ShamrockGetGrating(obj.shamrockDev);
-%             ShamrockCheckWarning(ret);
-%             [ret, lines, blaze, home, offset] = ShamrockGetGratingInfo(obj.shamrockDev, obj.CurrentGrating);
-%             ShamrockCheckWarning(ret);
-%             obj.SlitWidth = 150; % um
-%             obj.CentralWavelength = 785.00;%924.1050; % nm
-%             [ret] = ShamrockSetSlit(obj.shamrockDev, obj.SlitWidth);
-%             ShamrockCheckWarning(ret);
-% 
-%             [ret] = ShamrockSetWavelength(obj.shamrockDev, obj.CentralWavelength);
-%             ShamrockCheckWarning(ret);
-% 
-%             [ret, NumberPixels] = ShamrockGetNumberPixels(obj.shamrockDev);
-%             ShamrockCheckWarning(ret);
-%             [ret, obj.AxisWavelength] = ShamrockGetCalibration(obj.shamrockDev, NumberPixels);
-%             ShamrockCheckWarning(ret);
-% 
-%             
-%             fprintf('Grating Info: %d lines/mm,SlitWidth: %dum, Central Wavelength: %fnm\n',lines,obj.SlitWidth, obj.CentralWavelength);
+            [ret, obj.numbGratings] = ShamrockGetNumberGratings(Andor.ShamrockDev);
+            ShamrockCheckWarning(ret);
+            
+            [ret, obj.CurrentGrating] = ShamrockGetGrating(obj.shamrockDev);
+            ShamrockCheckWarning(ret);
+            [ret, lines, blaze, home, offset] = ShamrockGetGratingInfo(obj.shamrockDev, obj.CurrentGrating);
+            ShamrockCheckWarning(ret);
+            
+            obj.setSlitWidth(obj, obj.SlitWidth);
 
+            obj.setCentralWavelength(obj, obj.CentralWavelength);
+
+            [ret, NumberPixels] = ShamrockGetNumberPixels(obj.shamrockDev);
+            ShamrockCheckWarning(ret);
+            [ret, obj.AxisWavelength] = ShamrockGetCalibration(obj.shamrockDev, NumberPixels);
+            ShamrockCheckWarning(ret);
         end
-
+        
+        function obj = setSlitWidth(obj, width)
+            obj.SlitWidth = width;
+            [ret] = ShamrockSetSlit(obj.shamrockDev, obj.SlitWidth);
+            ShamrockCheckWarning(ret);
+        end
+        
+        function obj = setCentralWavelength(obj, wavelength)
+            
+            obj.CentralWavelength = wavelength;
+            [ret] = ShamrockSetWavelength(obj.shamrockDev, obj.CentralWavelength);
+            ShamrockCheckWarning(ret);
+            
+        end
+        
         function obj = ShutDownSafe(obj)
             [ret, iCoolerStatus] = IsCoolerOn();
             CheckWarning(ret);
