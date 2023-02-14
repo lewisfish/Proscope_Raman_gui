@@ -99,28 +99,38 @@ classdef Andor < handle
                 disp('Error occurred during Shamrock initialization!')
             end           
             
-            [ret, obj.numbGratings] = ShamrockGetNumberGratings(Andor.ShamrockDev);
-            ShamrockCheckWarning(ret);
-            
-            [ret, obj.CurrentGrating] = ShamrockGetGrating(obj.shamrockDev);
-            ShamrockCheckWarning(ret);
-            [ret, lines, blaze, home, offset] = ShamrockGetGratingInfo(obj.shamrockDev, obj.CurrentGrating);
-            ShamrockCheckWarning(ret);
-            obj.SlitWidth = 150; % um
-            obj.CentralWavelength = 924.1050; % nm
-            [ret] = ShamrockSetSlit(obj.shamrockDev, obj.SlitWidth);
-            ShamrockCheckWarning(ret);
+%             [ret, obj.numbGratings] = ShamrockGetNumberGratings(Andor.ShamrockDev);
+%             ShamrockCheckWarning(ret);
 
-            [ret] = ShamrockSetWavelength(obj.shamrockDev, obj.CentralWavelength);
-            ShamrockCheckWarning(ret);
+            [ret, deviceCount] = ShamrockGetNumberDevices();
+            %             ShamrockCheckWarning(ret);
+            if ret == Shamrock.SHAMROCK_SUCCESS
+                if deviceCount >1 %== 2 %strange in lab 106, return deviceCount 3!!!!increased from 2 to 3 in 22/04/2019
+                    ShamrockDev = 0;
+                else
+                    ShamrockDev = deviceCount-1;
+                end
+            end    
 
-            [ret, NumberPixels] = ShamrockGetNumberPixels(obj.shamrockDev);
-            ShamrockCheckWarning(ret);
-            [ret, obj.AxisWavelength] = ShamrockGetCalibration(obj.shamrockDev, NumberPixels);
-            ShamrockCheckWarning(ret);
-
-            
-            fprintf('Grating Info: %d lines/mm,SlitWidth: %dum, Central Wavelength: %fnm\n',lines,obj.SlitWidth, obj.CentralWavelength);
+%             [ret, obj.CurrentGrating] = ShamrockGetGrating(obj.shamrockDev);
+%             ShamrockCheckWarning(ret);
+%             [ret, lines, blaze, home, offset] = ShamrockGetGratingInfo(obj.shamrockDev, obj.CurrentGrating);
+%             ShamrockCheckWarning(ret);
+%             obj.SlitWidth = 150; % um
+%             obj.CentralWavelength = 785.00;%924.1050; % nm
+%             [ret] = ShamrockSetSlit(obj.shamrockDev, obj.SlitWidth);
+%             ShamrockCheckWarning(ret);
+% 
+%             [ret] = ShamrockSetWavelength(obj.shamrockDev, obj.CentralWavelength);
+%             ShamrockCheckWarning(ret);
+% 
+%             [ret, NumberPixels] = ShamrockGetNumberPixels(obj.shamrockDev);
+%             ShamrockCheckWarning(ret);
+%             [ret, obj.AxisWavelength] = ShamrockGetCalibration(obj.shamrockDev, NumberPixels);
+%             ShamrockCheckWarning(ret);
+% 
+%             
+%             fprintf('Grating Info: %d lines/mm,SlitWidth: %dum, Central Wavelength: %fnm\n',lines,obj.SlitWidth, obj.CentralWavelength);
 
         end
 
