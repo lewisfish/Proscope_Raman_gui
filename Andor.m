@@ -24,25 +24,25 @@ classdef Andor < handle
     end
     properties (Access = private)
        % private properties used internally
-       minTemp
-       maxTemp
-       CCDTemp
+       minTemp          % min temp CCD can go to
+       maxTemp          % max temp CDD can go to
+       CCDTemp          % current CCD temp
        AquistionMode
-       ExposureTime
+       ExposureTime     % in seconds
        ReadMode
        TriggerMode
        PreAmpGain
        XPixels
        YPixels
-       shamrockDev
-       SlitWidth
-       CurrentGrating
-       CentralWavelength
+       shamrockDev      % shamrock grating device number
+       SlitWidth        % in um
+       CurrentGrating   % current grating 
+       CentralWavelength% in nm
        AxisWavelength
        numbGratings
     end
     properties
-      abortSignal
+      abortSignal       % if 1 then abort aquistion
     end
    
     methods
@@ -72,10 +72,12 @@ classdef Andor < handle
              ret = AndorInitialize('');
             CheckError(ret);
             
+            % get allowable temp range for CCD
             [ret, obj.minTemp, obj.maxTemp] = GetTemperatureRange();
             CheckWarning(ret);
             obj.SetCCDTemp(CCDTemp)           
-
+            
+            % setup spectrometer variables
             [ret]=SetAcquisitionMode(obj.AquistionMode);
             CheckWarning(ret);
             [ret]=SetExposureTime(obj.ExposureTime);                  %   Set exposure time in seconds
@@ -94,10 +96,9 @@ classdef Andor < handle
             
         end
 
-        
         function obj = setupShamrock(obj)
-
            % setup shamrock grating
+
             [ret] = ShamrockInitialize('');
             ShamrockCheckError(ret);
             if ret == Shamrock.SHAMROCK_SUCCESS
@@ -106,6 +107,8 @@ classdef Andor < handle
                 disp('Error occurred during Shamrock initialization!')
             end           
             
+            % get device
+            % TODO check device numbers
             [ret, deviceCount] = ShamrockGetNumberDevices();
             ShamrockCheckWarning(ret);
             if ret == Shamrock.SHAMROCK_SUCCESS
