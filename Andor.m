@@ -34,7 +34,13 @@ classdef Andor < handle
        PreAmpGain
        XPixels
        YPixels
-%        spectra
+       shamrockDev
+       SlitWidth
+       CurrentGrating
+       CentralWavelength
+       AxisWavelength
+       numbGratings
+       
     end
     properties
       abortSignal
@@ -82,6 +88,40 @@ classdef Andor < handle
             CheckWarning(ret);
             [ret]=SetImage(1, 1, 1, obj.XPixels, 1, obj.YPixels); %   Set the image size
             CheckWarning(ret);
+            
+            
+            % setup shamrock grating
+            [ret] = ShamrockInitialize('');
+            ShamrockCheckError(ret);
+            if ret == Shamrock.SHAMROCK_SUCCESS
+                fprintf('done!\nShamrock has been initialized successfully!\n');
+            else
+                disp('Error occurred during Shamrock initialization!')
+            end           
+            
+            [ret, obj.numbGratings] = ShamrockGetNumberGratings(Andor.ShamrockDev);
+            ShamrockCheckWarning(ret);
+            
+            [ret, obj.CurrentGrating] = ShamrockGetGrating(obj.shamrockDev);
+            ShamrockCheckWarning(ret);
+            [ret, lines, blaze, home, offset] = ShamrockGetGratingInfo(obj.shamrockDev, obj.CurrentGrating);
+            ShamrockCheckWarning(ret);
+            obj.SlitWidth = 150; % um
+            obj.CentralWavelength = 924.1050; % nm
+            [ret] = ShamrockSetSlit(obj.shamrockDev, obj.SlitWidth);
+            ShamrockCheckWarning(ret);
+
+            [ret] = ShamrockSetWavelength(obj.shamrockDev, obj.CentralWavelength);
+            ShamrockCheckWarning(ret);
+
+            [ret, NumberPixels] = ShamrockGetNumberPixels(obj.shamrockDev);
+            ShamrockCheckWarning(ret);
+            [ret, obj.AxisWavelength] = ShamrockGetCalibration(obj.shamrockDev, NumberPixels);
+            ShamrockCheckWarning(ret);
+
+            
+            fprintf('Grating Info: %d lines/mm,SlitWidth: %dum, Central Wavelength: %fnm\n',lines,obj.SlitWidth, obj.CentralWavelength);
+
         end
 
         function obj = ShutDownSafe(obj)
@@ -122,7 +162,7 @@ classdef Andor < handle
               CheckWarning(ret);
             end
 
-            [ret, imageData] = GetMostRecentImage(XPixels);
+            [ret, imageData] = GetMostRecentImage(obj.XPixels);
             CheckWarning(ret);
 
             if ret == atmcd.DRV_SUCCESS
