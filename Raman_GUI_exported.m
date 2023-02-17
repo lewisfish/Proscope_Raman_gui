@@ -124,12 +124,15 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
         % Button pushed function: CalibrateButton
         function CalibrateButtonPushed(app, event)
-            % do nothing currently
             app.CalibrationDone = true;
             % set setting for calibration here
+            %integration time is 1s, rest is standard
+            expTime = app.spectrometerHandle.ExposureTime;
+            app.spectrometerHandle.ExposureTime = 1.0;
             [w, s] = app.spectrometerHandle.AquireSpectra();
             saveData(app, w, s, app.CalibrationSaveDir);
             plot(app.AquireAxes, w, s, 'r-');
+            app.spectrometerHandle.ExposureTime = expTime;
         end
 
         % Callback function: ExitButton, UIFigure
@@ -291,6 +294,47 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             value = app.CentralWavelengthEditField.Value;
             app.spectrometerHandle.setCentralWavelength(value);
         end
+
+        % Value changed function: CCDTempEditField
+        function CCDTempEditFieldValueChanged(app, event)
+            value = app.CCDTempEditField.Value;
+            app.spectrometerHandle.SetCCDTemp(value);
+        end
+
+        % Value changed function: MaxWavelengthEditField
+        function MaxWavelengthEditFieldValueChanged(app, event)
+            value = app.MaxWavelengthEditField.Value;
+            
+        end
+
+        % Value changed function: MinWavelengthEditField
+        function MinWavelengthEditFieldValueChanged(app, event)
+            value = app.MinWavelengthEditField.Value;
+            
+        end
+
+        % Value changed function: TuningStepsEditField
+        function TuningStepsEditFieldValueChanged(app, event)
+            value = app.TuningStepsEditField.Value;
+            
+        end
+
+        % Value changed function: LaserPowerEditField
+        function LaserPowerEditFieldValueChanged(app, event)
+            value = app.LaserPowerEditField.Value;
+            
+        end
+
+        % Key press function: UIFigure
+        function UIFigureKeyPress(app, event)
+            key = event.Key;
+            switch key
+                case 'a' % aquire
+                    app.AquireButtonPushed();
+                case 's' %stop
+                    app.abortButtonPushed();
+            end
+        end
     end
 
     % Component initialization
@@ -304,6 +348,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.UIFigure.Position = [100 100 1024 768];
             app.UIFigure.Name = 'MATLAB App';
             app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @UIFigureCloseRequest, true);
+            app.UIFigure.KeyPressFcn = createCallbackFcn(app, @UIFigureKeyPress, true);
 
             % Create TabGroup
             app.TabGroup = uitabgroup(app.UIFigure);
@@ -495,6 +540,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.MaxWavelengthEditField = uieditfield(app.GridLayout, 'numeric');
             app.MaxWavelengthEditField.Limits = [0 Inf];
             app.MaxWavelengthEditField.ValueDisplayFormat = '%.2f';
+            app.MaxWavelengthEditField.ValueChangedFcn = createCallbackFcn(app, @MaxWavelengthEditFieldValueChanged, true);
             app.MaxWavelengthEditField.HorizontalAlignment = 'center';
             app.MaxWavelengthEditField.FontSize = 18;
             app.MaxWavelengthEditField.Visible = 'off';
@@ -514,6 +560,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.MinWavelengthEditField = uieditfield(app.GridLayout, 'numeric');
             app.MinWavelengthEditField.Limits = [0 Inf];
             app.MinWavelengthEditField.ValueDisplayFormat = '%.2f';
+            app.MinWavelengthEditField.ValueChangedFcn = createCallbackFcn(app, @MinWavelengthEditFieldValueChanged, true);
             app.MinWavelengthEditField.HorizontalAlignment = 'center';
             app.MinWavelengthEditField.FontSize = 18;
             app.MinWavelengthEditField.Visible = 'off';
@@ -533,6 +580,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.TuningStepsEditField = uieditfield(app.GridLayout, 'numeric');
             app.TuningStepsEditField.Limits = [0 50];
             app.TuningStepsEditField.ValueDisplayFormat = '%.0f';
+            app.TuningStepsEditField.ValueChangedFcn = createCallbackFcn(app, @TuningStepsEditFieldValueChanged, true);
             app.TuningStepsEditField.HorizontalAlignment = 'center';
             app.TuningStepsEditField.FontSize = 18;
             app.TuningStepsEditField.Visible = 'off';
@@ -604,6 +652,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
             % Create LaserPowerEditField
             app.LaserPowerEditField = uieditfield(app.GridLayout, 'numeric');
+            app.LaserPowerEditField.ValueChangedFcn = createCallbackFcn(app, @LaserPowerEditFieldValueChanged, true);
             app.LaserPowerEditField.HorizontalAlignment = 'center';
             app.LaserPowerEditField.FontSize = 18;
             app.LaserPowerEditField.Visible = 'off';
@@ -648,6 +697,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             % Create CCDTempEditField
             app.CCDTempEditField = uieditfield(app.GridLayout, 'numeric');
             app.CCDTempEditField.ValueDisplayFormat = '%.0f';
+            app.CCDTempEditField.ValueChangedFcn = createCallbackFcn(app, @CCDTempEditFieldValueChanged, true);
             app.CCDTempEditField.FontSize = 18;
             app.CCDTempEditField.Visible = 'off';
             app.CCDTempEditField.Layout.Row = 2;
