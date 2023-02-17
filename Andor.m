@@ -158,9 +158,15 @@ classdef Andor < handle
                 ret = CoolerOFF();
                 CheckWarning(ret);
             end
-            %[ret] = SetCoolerMode(1); % keep cooler on;
-            %CheckWarning(ret);
            
+            [ret, temp] = GetTemperature();
+            CheckWarning(ret);
+
+            while temp < -20
+                [ret, temp] = GetTemperature();
+                CheckWarning(ret);
+                pause(1.0);
+            end
             [ret]=AndorShutDown();
             CheckWarning(ret);
         end
