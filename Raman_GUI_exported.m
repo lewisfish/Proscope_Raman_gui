@@ -64,7 +64,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
     end
     methods (Access = private)
         
-        function results = saveData(app, colA, colB, dirPath)
+        function saveData(app, colA, colB, dirPath)
             varNames = {'Raman Shift/cm^-1', 'Counts/arb.'};
             T = table(colA, colB, 'VariableNames',varNames);
             filename = join([dirPath, app.PatientID], "/");
@@ -377,7 +377,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.LaserShutterButton.FontSize = 18;
             app.LaserShutterButton.Visible = 'off';
             app.LaserShutterButton.Layout.Row = [4 5];
-            app.LaserShutterButton.Layout.Column = 15;
+            app.LaserShutterButton.Layout.Column = [15 16];
             app.LaserShutterButton.Text = 'Laser Shutter';
 
             % Create EngineeringModeButton
