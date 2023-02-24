@@ -22,7 +22,7 @@ classdef Andor < handle
         Software = 10
         ExternalChargeShifting = 12
     end
-    properties (Access = private)
+    properties (Access = public)
        % private properties used internally
        minTemp          % min temp CCD can go to
        maxTemp          % max temp CDD can go to
@@ -114,7 +114,9 @@ classdef Andor < handle
                 end
             end    
 
-            [ret, obj.numbGratings] = ShamrockGetNumberGratings(Andor.ShamrockDev);
+            obj.CoolCCD();
+            
+            [ret, obj.numbGratings] = ShamrockGetNumberGratings(obj.shamrockDev);
             ShamrockIssueWarning(ret);
             
             [ret, obj.CurrentGrating] = ShamrockGetGrating(obj.shamrockDev);
@@ -122,9 +124,9 @@ classdef Andor < handle
             [ret, lines, blaze, home, offset] = ShamrockGetGratingInfo(obj.shamrockDev, obj.CurrentGrating);
             ShamrockIssueWarning(ret);
             
-            obj.setSlitWidth(obj, obj.SlitWidth);
+            obj.setSlitWidth(obj.SlitWidth);
 
-            obj.setCentralWavelength(obj, obj.CentralWavelength);
+            obj.setCentralWavelength(obj.CentralWavelength);
 
             [ret, NumberPixels] = ShamrockGetNumberPixels(obj.shamrockDev);
             ShamrockIssueWarning(ret);
@@ -145,7 +147,7 @@ classdef Andor < handle
             ShamrockIssueWarning(ret);
             
         end
-        
+
         function obj = ShutDownSafe(obj)
             [ret, iCoolerStatus] = IsCoolerOn();
             AndorIssueWarning(ret);
@@ -217,12 +219,23 @@ classdef Andor < handle
             ret = SetTemperature(obj.CCDTemp);
             AndorIssueWarning(ret);
             [ret, temp] = GetTemperature();
+            fprintf('cooling cmera ---> ');
+            msg = [num2str(temp) 'Celcius.....'];
+            mnum = length(msg);
+            fprintf(msg);
             while ret ~= atmcd.DRV_TEMP_STABILIZED
-                msg = num2str(temp);
+                for mm = 1:mnum
+                    fprintf('\b');
+                end
+                msg = [num2str(temp) 'Celcius.....'];
+                mnum = length(msg);
                 fprintf(msg);
                 pause(1);
                 [ret, temp] = GetTemperature();
-                AndorIssueWarning(ret);
+                if ret == atmcd.DRV_NOT_INITIALIZED || ret == atmcd.DRV_ACQUIRING || ret == atmcd.DRV_ERROR_ACK || ret == atmcd.DRV_TEMPERATURE_OFF
+                    AndorIssueWarning(ret);
+                    break;
+                end
             end
         end 
 

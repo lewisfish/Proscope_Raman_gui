@@ -67,7 +67,10 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function saveData(app, colA, colB, dirPath)
             varNames = {'Raman Shift/cm^-1', 'Counts/arb.'};
             T = table(colA, colB, 'VariableNames',varNames);
-            filename = join([dirPath, app.PatientID], "/");
+            disp(dirPath);
+            disp(app.PatientID);
+            filename = join([dirPath, app.PatientID], "\");
+            disp(filename);
             writetable(T, join([filename ".csv"], ""));
         end
     end
@@ -99,7 +102,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 %             app.LaserHandle.enable_laser_heater_power();
             
             %add spectrometer setup here
-            %app.spectrometerHandle = Andor();
+            app.spectrometerHandle = Andor();
             
             % set up LUT
             T = readtable("FHM_laser_look_up_table.csv"); % read in look up table
