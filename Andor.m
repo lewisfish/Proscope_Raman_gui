@@ -40,6 +40,7 @@ classdef Andor < handle
        CentralWavelength% in nm
        AxisWavelength
        numbGratings
+       CCDCooled  % if 1 then CCD is cooled else bot cooled to set temp
     end
     properties
       abortSignal       % if 1 then abort aquistion
@@ -152,10 +153,10 @@ classdef Andor < handle
             
         end
         function obj = setExposureTime(obj, time)
-            
+
             obj.ExposureTime = time;
             [ret]=SetExposureTime(obj.ExposureTime);
-            ShamrockIssueWarning(ret, "SetExposureTime");
+            AndorIssueWarning(ret, "SetExposureTime");
             
         end
         function obj = ShutDownSafe(obj)
@@ -189,23 +190,7 @@ classdef Andor < handle
             disp('Starting Acquisition');
             [ret] = StartAcquisition();                  
             AndorIssueWarning(ret, "StartAcquisition");
-
-%             [ret,gstatus]=AndorGetStatus();
-%             AndorIssueWarning(ret, "AndorGetStatus before Acquisition wait loop");
-%             while(gstatus ~= atmcd.DRV_IDLE)
-%                 if obj.abortSignal == 1
-%                     ret = AbortAcquisition();
-%                     AndorIssueWarning(ret, "AbortAcquisition");
-%                     obj.abortSignal = 0;
-%                     break
-%                 end
-%               pause(1.0);
-%               disp('Acquiring');
-%               [ret,gstatus]=AndorGetStatus();
-%               AndorIssueWarning(ret, "AndorGetStatus during Acquisition wait loop");
-%             end
-
-            
+           
             gstatus = 0;
             while(gstatus ~= atmcd.DRV_IDLE)                
                 [ret,gstatus]=AndorGetStatus;
@@ -237,28 +222,21 @@ classdef Andor < handle
             ret = SetTemperature(obj.CCDTemp);
             AndorIssueWarning(ret, "SetTemperature");
             [ret, temp] = GetTemperature();
-%             fprintf('cooling camera ---> ');
-            msg = [num2str(temp) 'C'];
-%             mnum = length(msg);
-%             fprintf(msg);
+            msg = ["Current CCD temperature ", num2str(temp) 'C'];
+
             h = msgbox(msg, "Cooling CCD");
             while ret ~= atmcd.DRV_TEMP_STABILIZED
-%                 for mm = 1:mnum
-%                     fprintf('\b');
-%                 end
-                  msg = [num2str(temp) 'C'];
-%                 mnum = length(msg);
-%                 fprintf(msg);
-                set(findobj(h,'Tag','MessageBox'),'String',msg)
+                msg = ["Current CCD temperature ", num2str(temp) 'C'];
+                set(findobj(h,'Tag','MessageBox'),'String',msg);
                 pause(1);
                 [ret, temp] = GetTemperature();
-%                 disp(ret);
+
                 if ret == atmcd.DRV_NOT_INITIALIZED || ret == atmcd.DRV_ACQUIRING || ret == atmcd.DRV_ERROR_ACK || ret == atmcd.DRV_TEMPERATURE_OFF
                     AndorIssueWarning(ret, "During Cooling loop");
                     break;
                 end
             end
-            disp("cooled");
+            obj.CCDCooled = 1;
         end 
 
         function SetCCDTemp(obj, temp)

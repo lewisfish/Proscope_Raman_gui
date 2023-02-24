@@ -127,15 +127,18 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
         % Button pushed function: CalibrateButton
         function CalibrateButtonPushed(app, event)
-            app.CalibrationDone = true;
-            % set setting for calibration here
-            %integration time is 1s, rest is standard
-            expTime = 0.01;%app.spectrometerHandle.ExposureTime;
-            app.spectrometerHandle.setExposureTime(1.0);
-            [w, s] = app.spectrometerHandle.AquireSpectra();
-            saveData(app, w, s, app.CalibrationSaveDir);
-            plot(app.AquireAxes, w, s, 'r-');
-            app.spectrometerHandle.setExposureTime(expTime);
+            if app.spectrometerHandle.CCDCooled == 1
+                app.CalibrationDone = true;
+                %integration time is 1s, rest is standard
+                expTime = 0.01;%app.spectrometerHandle.ExposureTime;
+                app.spectrometerHandle.setExposureTime(1.0);
+                [w, s] = app.spectrometerHandle.AquireSpectra();
+                saveData(app, w, s, app.CalibrationSaveDir);
+                plot(app.AquireAxes, w, s, 'r-');
+                app.spectrometerHandle.setExposureTime(expTime);
+            else
+                uiwait(msgbox("CCD not fully cooled!","Calibration Warning","warn", "modal"));
+            end
         end
 
         % Callback function: ExitButton, UIFigure
