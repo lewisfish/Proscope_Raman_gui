@@ -130,7 +130,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.CalibrationDone = true;
             % set setting for calibration here
             %integration time is 1s, rest is standard
-            expTime = app.spectrometerHandle.ExposureTime;
+            expTime = 0.01%app.spectrometerHandle.ExposureTime;
             app.spectrometerHandle.setExposureTime(1.0);
             [w, s] = app.spectrometerHandle.AquireSpectra();
             saveData(app, w, s, app.CalibrationSaveDir);

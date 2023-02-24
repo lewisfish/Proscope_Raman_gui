@@ -209,7 +209,7 @@ classdef Andor < handle
             gstatus = 0;
             while(gstatus ~= atmcd.DRV_IDLE)                
                 [ret,gstatus]=AndorGetStatus;
-                CheckWarning(ret, "AndorGetStatus during Acquisition wait loop");                
+                AndorIssueWarning(ret, "AndorGetStatus during Acquisition wait loop");                
             end
             disp("acquired");
             
@@ -250,11 +250,13 @@ classdef Andor < handle
                 fprintf(msg);
                 pause(1);
                 [ret, temp] = GetTemperature();
+%                 disp(ret);
                 if ret == atmcd.DRV_NOT_INITIALIZED || ret == atmcd.DRV_ACQUIRING || ret == atmcd.DRV_ERROR_ACK || ret == atmcd.DRV_TEMPERATURE_OFF
                     AndorIssueWarning(ret, "During Cooling loop");
                     break;
                 end
             end
+            disp("cooled");
         end 
 
         function SetCCDTemp(obj, temp)
