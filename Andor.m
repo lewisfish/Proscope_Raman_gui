@@ -100,12 +100,7 @@ classdef Andor < handle
            % setup shamrock grating
 
             [ret] = ShamrockInitialize('');
-            ShamrockIssueError(ret);
-            if ret == Shamrock.SHAMROCK_SUCCESS
-                fprintf('done!\nShamrock has been initialized successfully!\n');
-            else
-                disp('Error occurred during Shamrock initialization!')
-            end           
+            ShamrockIssueError(ret);     
             
             % get device
             % TODO check device numbers
