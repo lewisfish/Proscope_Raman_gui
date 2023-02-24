@@ -70,156 +70,174 @@ classdef Andor < handle
             obj.SlitWidth = slitWidth;
 
             ret = AndorInitialize('');
-            AndorIssueError(ret);
+            AndorIssueError(ret, "AndorInitialize");
             
             % get allowable temp range for CCD
             [ret, obj.minTemp, obj.maxTemp] = GetTemperatureRange();
-            AndorIssueWarning(ret);
-            obj.SetCCDTemp(CCDTemp)           
+            AndorIssueWarning(ret, "GetTemperatureRange");
+            obj.SetCCDTemp(CCDTemp)   
+
+            % start cooling CCD
+            obj.CoolCCD();
             
             % setup spectrometer variables
             [ret]=SetAcquisitionMode(obj.AquistionMode);
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "SetAcquisitionMode");
+
             [ret]=SetExposureTime(obj.ExposureTime);                  %   Set exposure time in seconds
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "SetExposureTime");
+
             [ret]=SetReadMode(obj.ReadMode);                         
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "SetReadMode");
+
             [ret]=SetTriggerMode(obj.TriggerMode);                      
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "SetTriggerMode");
 
             [ret, obj.XPixels, obj.YPixels]=GetDetector();         %   Get the CCD size
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "GetDetector");
+
             [ret]=SetImage(1, 1, 1, obj.XPixels, 1, obj.YPixels); %   Set the image size
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "SetImage");
             
-            obj.setupShamrock();
-            
+            obj.setupShamrock();            
         end
 
         function obj = setupShamrock(obj)
            % setup shamrock grating
 
             [ret] = ShamrockInitialize('');
-            ShamrockIssueError(ret);     
+            ShamrockIssueError(ret, "ShamrockInitialize");     
             
             % get device
             % TODO check device numbers
             [ret, deviceCount] = ShamrockGetNumberDevices();
-            ShamrockIssueWarning(ret);
+            ShamrockIssueWarning(ret, "ShamrockGetNumberDevices");
             if ret == Shamrock.SHAMROCK_SUCCESS
                 if deviceCount >1 %== 2 %strange in lab 106, return deviceCount 3!!!!increased from 2 to 3 in 22/04/2019
                     obj.shamrockDev = 0;
                 else
                     obj.shamrockDev = deviceCount-1;
                 end
-            end    
-
-            obj.CoolCCD();
+            end
             
             [ret, obj.numbGratings] = ShamrockGetNumberGratings(obj.shamrockDev);
-            ShamrockIssueWarning(ret);
+            ShamrockIssueWarning(ret, "ShamrockGetNumberGratings");
             
             [ret, obj.CurrentGrating] = ShamrockGetGrating(obj.shamrockDev);
-            ShamrockIssueWarning(ret);
+            ShamrockIssueWarning(ret, "ShamrockGetGrating");
             [ret, lines, blaze, home, offset] = ShamrockGetGratingInfo(obj.shamrockDev, obj.CurrentGrating);
-            ShamrockIssueWarning(ret);
+            ShamrockIssueWarning(ret, "ShamrockGetGratingInfo");
             
             obj.setSlitWidth(obj.SlitWidth);
 
             obj.setCentralWavelength(obj.CentralWavelength);
 
             [ret, NumberPixels] = ShamrockGetNumberPixels(obj.shamrockDev);
-            ShamrockIssueWarning(ret);
+            ShamrockIssueWarning(ret, "ShamrockGetNumberPixels");
             [ret, obj.AxisWavelength] = ShamrockGetCalibration(obj.shamrockDev, NumberPixels);
-            ShamrockIssueWarning(ret);
+            ShamrockIssueWarning(ret, "ShamrockGetCalibration");
         end
         
         function obj = setSlitWidth(obj, width)
             obj.SlitWidth = width;
             [ret] = ShamrockSetSlit(obj.shamrockDev, obj.SlitWidth);
-            ShamrockIssueWarning(ret);
+            ShamrockIssueWarning(ret, "ShamrockSetSlit");
         end
         
         function obj = setCentralWavelength(obj, wavelength)
             
             obj.CentralWavelength = wavelength;
             [ret] = ShamrockSetWavelength(obj.shamrockDev, obj.CentralWavelength);
-            ShamrockIssueWarning(ret);
+            ShamrockIssueWarning(ret, "ShamrockSetWavelength");
             
         end
-
+        function obj = setExposureTime(obj, time)
+            
+            obj.ExposureTime = time;
+            [ret]=SetExposureTime(obj.ExposureTime);
+            ShamrockIssueWarning(ret, "SetExposureTime");
+            
+        end
         function obj = ShutDownSafe(obj)
             [ret, iCoolerStatus] = IsCoolerOn();
             AndorIssueWarning(ret);
             if iCoolerStatus
                 ret = CoolerOFF();
-                AndorIssueWarning(ret);
+                AndorIssueWarning(ret, "CoolerOFF");
             end
            
             [ret, temp] = GetTemperature();
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "GetTemperature");
 
             while temp < -20
                 [ret, temp] = GetTemperature();
-                AndorIssueWarning(ret);
+                AndorIssueWarning(ret, "GetTemperature");
                 pause(1.0);
             end
             [ret]=AndorShutDown();
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "AndorShutDown");
         end
         
         function [waves, spectra] = AquireSpectra(obj)
            
+            [ret] = PrepareAcquisition();
+            AndorIssueWarning(ret, "PrepareAcquisition");
+            
             [ret]=SetShutter(1, 1, 0, 0); %   Open Shutter
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "SetShutter Open");
         
             disp('Starting Acquisition');
             [ret] = StartAcquisition();                  
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "StartAcquisition");
 
-            [ret,gstatus]=AndorGetStatus;
-            AndorIssueWarning(ret);
-            while(gstatus ~= atmcd.DRV_IDLE)
-                if obj.abortSignal == 1
-                    ret = AbortAcquisition();
-                    AndorIssueWarning(ret);
-                    obj.abortSignal = 0;
-                    break
-                end
-              pause(1.0);
-              disp('Acquiring');
-              [ret,gstatus]=AndorGetStatus;
-              AndorIssueWarning(ret);
+%             [ret,gstatus]=AndorGetStatus();
+%             AndorIssueWarning(ret, "AndorGetStatus before Acquisition wait loop");
+%             while(gstatus ~= atmcd.DRV_IDLE)
+%                 if obj.abortSignal == 1
+%                     ret = AbortAcquisition();
+%                     AndorIssueWarning(ret, "AbortAcquisition");
+%                     obj.abortSignal = 0;
+%                     break
+%                 end
+%               pause(1.0);
+%               disp('Acquiring');
+%               [ret,gstatus]=AndorGetStatus();
+%               AndorIssueWarning(ret, "AndorGetStatus during Acquisition wait loop");
+%             end
+
+            
+            gstatus = 0;
+            while(gstatus ~= atmcd.DRV_IDLE)                
+                [ret,gstatus]=AndorGetStatus;
+                CheckWarning(ret, "AndorGetStatus during Acquisition wait loop");                
             end
-
+            disp("acquired");
+            
             [ret, imageData] = GetMostRecentImage(obj.XPixels);
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "GetMostRecentImage");
 
             if ret == atmcd.DRV_SUCCESS
                spectra = imageData;
                waves = linspace(0,3000, length(spectra))';
-%                 plot(spectra);
             else
                 spectra = zeros(3000, 1);
                 waves = linspace(0, 3000, length(spectra))';
             end
-%            spectra =rand(3000, 1);
-%            waves = linspace(0,3000, 3000)';
             [ret]=SetShutter(1, 2, 1, 1); %close shutter
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "SetShutter Close");
         end
         
         function obj = CoolCCD(obj)
             
             % turn on cooler
             [ret] = CoolerON();
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "CoolerON");
            
             % wait for CCD to cool         
             ret = SetTemperature(obj.CCDTemp);
-            AndorIssueWarning(ret);
+            AndorIssueWarning(ret, "SetTemperature");
             [ret, temp] = GetTemperature();
-            fprintf('cooling cmera ---> ');
+            fprintf('cooling camera ---> ');
             msg = [num2str(temp) 'Celcius.....'];
             mnum = length(msg);
             fprintf(msg);
@@ -233,7 +251,7 @@ classdef Andor < handle
                 pause(1);
                 [ret, temp] = GetTemperature();
                 if ret == atmcd.DRV_NOT_INITIALIZED || ret == atmcd.DRV_ACQUIRING || ret == atmcd.DRV_ERROR_ACK || ret == atmcd.DRV_TEMPERATURE_OFF
-                    AndorIssueWarning(ret);
+                    AndorIssueWarning(ret, "During Cooling loop");
                     break;
                 end
             end
