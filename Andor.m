@@ -237,17 +237,19 @@ classdef Andor < handle
             ret = SetTemperature(obj.CCDTemp);
             AndorIssueWarning(ret, "SetTemperature");
             [ret, temp] = GetTemperature();
-            fprintf('cooling camera ---> ');
-            msg = [num2str(temp) 'Celcius.....'];
-            mnum = length(msg);
-            fprintf(msg);
+%             fprintf('cooling camera ---> ');
+            msg = [num2str(temp) 'C'];
+%             mnum = length(msg);
+%             fprintf(msg);
+            h = msgbox(msg, "Cooling CCD");
             while ret ~= atmcd.DRV_TEMP_STABILIZED
-                for mm = 1:mnum
-                    fprintf('\b');
-                end
-                msg = [num2str(temp) 'Celcius.....'];
-                mnum = length(msg);
-                fprintf(msg);
+%                 for mm = 1:mnum
+%                     fprintf('\b');
+%                 end
+                  msg = [num2str(temp) 'C'];
+%                 mnum = length(msg);
+%                 fprintf(msg);
+                set(findobj(h,'Tag','MessageBox'),'String',msg)
                 pause(1);
                 [ret, temp] = GetTemperature();
 %                 disp(ret);
