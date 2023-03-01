@@ -74,9 +74,10 @@ classdef Laser
                 current = 180
                 heater_current = 550
             end
-            obj.setTemperature(temperature);
-            obj.setCurrent(current);
-            obj.setHeaterCurrent(heater_current);
+
+            obj = obj.setTemperature(temperature);
+            obj = obj.setCurrent(current);
+            obj = obj.setHeaterCurrent(heater_current);
     
             T = readtable("FHM_laser_LUT_current_vs_power.csv");
             obj.power_LUT = griddedInterpolant(T.power, T.current);
@@ -105,7 +106,7 @@ classdef Laser
             obj.writeHeaterCurrent();
             obj.enableTEC();
             obj.checkReady();
-            obj.enableLaserHeaterPower();
+%             obj.enableLaserHeaterPower();
         end
         function obj = writeTemperature(obj)
             % Set target temperature of laser in Celcius

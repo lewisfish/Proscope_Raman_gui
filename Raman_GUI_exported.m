@@ -70,7 +70,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             disp(app.PatientID);
             filename = join([dirPath, app.PatientID], "\");
             disp(filename);
-            writetable(T, join([filename ".csv"], ""));
+            writetable(T, join(["test" ".csv"], ""));
         end
     end
 
@@ -97,8 +97,8 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                             'StartDelay',0,... % In seconds.
                             'TasksToExecute',inf,...  % number of times to update
                             'ExecutionMode','fixedSpacing');
-%             app.LaserHandle = Laser();
-%             app.LaserHandle.enable_laser_heater_power();
+            app.LaserHandle = Laser();
+            app.LaserHandle.enableLaserHeaterPower();
             
             %add spectrometer setup here
             app.spectrometerHandle = Andor();
@@ -140,7 +140,10 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function UIFigureCloseRequest(app, event)
             answer = questdlg("Do you want to shutdown the software?");
             if answer == "Yes"
-%                app.spectrometerHandle.ShutDownSafe();
+                app.spectrometerHandle.ShutDownSafe();
+                app.LaserHandle.switchOff();
+                delete(app.LaserHandle);
+                delete(app.spectrometerHandle);
                 stop(app.tmr);
                 delete(app.tmr);
                 delete(app);
@@ -305,13 +308,13 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Value changed function: MaxWavelengthEditField
         function MaxWavelengthEditFieldValueChanged(app, event)
             value = app.MaxWavelengthEditField.Value;
-            app.AquireAxes.XLim = [app.MinWavelengthEditField.Value, value];
+%             app.AquireAxes.XLim = [app.MinWavelengthEditField.Value, value];
         end
 
         % Value changed function: MinWavelengthEditField
         function MinWavelengthEditFieldValueChanged(app, event)
             value = app.MinWavelengthEditField.Value;
-            app.AquireAxes.XLim = [value, app.MinWavelengthEditField.Value];
+%             app.AquireAxes.XLim = [value, app.MaxWavelengthEditField.Value];
         end
 
         % Value changed function: TuningStepsEditField
@@ -324,7 +327,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function LaserPowerEditFieldValueChanged(app, event)
             value = app.LaserPowerEditField.Value;
             %this is heater current in FBH parlence...
-            obj.LaserHandle.setCurrentViaPower(value);
+            app.LaserHandle.setCurrentViaPower(value);
         end
 
         % Key press function: UIFigure

@@ -190,6 +190,7 @@ classdef Andor < handle
             
         end
         function obj = ShutDownSafe(obj)
+            %fix get temp warning, as its off...
             [ret, iCoolerStatus] = IsCoolerOn();
             AndorIssueWarning(ret);
             if iCoolerStatus
@@ -198,11 +199,11 @@ classdef Andor < handle
             end
            
             [ret, temp] = GetTemperature();
-            AndorIssueWarning(ret, "GetTemperature");
+%             AndorIssueWarning(ret, "GetTemperature");
 
             while temp < -20
                 [ret, temp] = GetTemperature();
-                AndorIssueWarning(ret, "GetTemperature");
+%                 AndorIssueWarning(ret, "GetTemperature");
                 pause(1.0);
             end
             [ret]=AndorShutDown();
@@ -243,7 +244,7 @@ classdef Andor < handle
         end
         
         function obj = CoolCCD(obj)
-            
+            obj.CCDCooled = 0;
             % turn on cooler
             [ret] = CoolerON();
             AndorIssueWarning(ret, "CoolerON");
@@ -267,6 +268,7 @@ classdef Andor < handle
                 end
             end
             obj.CCDCooled = 1;
+            disp("done!")
         end 
 
         function SetCCDTemp(obj, temp)
