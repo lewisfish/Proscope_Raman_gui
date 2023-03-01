@@ -80,15 +80,26 @@ classdef Laser
             obj.DigitalHeaterCurrent0 = 218 * (obj.HeaterCurrent / 2.);
             obj.DigitalHeaterCurrent1 = 218 * (obj.HeaterCurrent / 2.);
     
-
+            % get all serial devices
             devices = obj.IDSerialComs();
-            deviceNames = devices{:, 1};
-            COMPort = devices{:, 2};
+%             devices = {"test0", 5;"Silicon Labs CP210x USB to UART Bridge",4;"test2",7};
+            deviceNames = devices(:, 1);
+            COMPorts = devices(:, 2);
+            
+            % loop over devices and get the correct COM Port
+            for i = 1:size(deviceNames)
+               name = deviceNames{i};
+               if name == "Silicon Labs CP210x USB to UART Bridge"
+                   id = i;
+                   break
+               end
+            end
+            
+            COMPort = sprintf('COM%d', COMPorts{id});
             
             % open communication to the laser and set variables on device
-            obj.SerialPort = serialport('COM4', 38400, 'DataBits', 8);
-            % check if it is always com4 if not to write code to check for siliconlabs as per
-            % datasheet
+            obj.SerialPort = serialport(COMPort, 38400, 'DataBits', 8);
+
             obj.setTemperature();
             obj.setCurrent();
             obj.setHeaterCurrent();
