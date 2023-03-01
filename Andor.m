@@ -23,7 +23,7 @@ classdef Andor < handle
         ExternalChargeShifting = 12
     end
     properties (Access = public)
-       % private properties used internally
+       % properties used internally
        minTemp          % min temp CCD can go to
        maxTemp          % max temp CDD can go to
        CCDTemp          % current CCD temp
@@ -34,16 +34,21 @@ classdef Andor < handle
        PreAmpGain
        XPixels
        YPixels
-       shamrockDev      % shamrock grating device number
-       SlitWidth        % in um
-       CurrentGrating   % current grating 
-       CentralWavelength% in nm
+       shamrockDev       % shamrock grating device number
+       SlitWidth         % in um
+       CurrentGrating    % current grating 
+       CentralWavelength % in nm
+       maxWavelength     % in nm. max wavelength for wmrs
+       minWavlength      % in nm. min wavelength for wmrs
        AxisWavelength
        numbGratings
-       CCDCooled  % if 1 then CCD is cooled else bot cooled to set temp
+       CCDCooled         % if 1 then CCD is cooled else not cooled to set temp
+       wavelength_LUT    % 1D interpolation for current to wavelength conversion
+       abortSignal       % if 1 then abort aquistion
     end
-    properties
-      abortSignal       % if 1 then abort aquistion
+    properties (Access = private)
+        MINWAVE % min tuning wavelength. in nm
+        MAXWAVE % max tuning wavelength. in nm
     end
    
     methods
@@ -100,7 +105,13 @@ classdef Andor < handle
             [ret]=SetImage(1, 1, 1, obj.XPixels, 1, obj.YPixels); %   Set the image size
             AndorIssueWarning(ret, "SetImage");
             
-            obj.setupShamrock();            
+            obj.setupShamrock();
+            
+            % set up LUT
+            T = readtable("FHM_laser_look_up_table.csv"); % read in look up table
+            obj.wavelength_LUT = griddedInterpolant(T.current, T.wavelength);
+            obj.MINWAVE = min(T.wavelength);
+            obj.MAXWAVE = max(T.wavelength);
         end
 
         function obj = setupShamrock(obj)
@@ -146,12 +157,30 @@ classdef Andor < handle
         end
         
         function obj = setCentralWavelength(obj, wavelength)
-            
+            % set central wavelength for WMRS
+            % this is also the wavelength for single spectra mode
             obj.CentralWavelength = wavelength;
             [ret] = ShamrockSetWavelength(obj.shamrockDev, obj.CentralWavelength);
             ShamrockIssueWarning(ret, "ShamrockSetWavelength");
-            
         end
+        
+        function obj = setMaxWavelength(obj, wavelength)
+            if wavelength < obj.MAXWAVE
+                obj.maxWavlength = obj.MAXWAVE;
+            else
+                obj.maxWavelength = wavelength;
+            end
+        end
+  
+        function obj = setMinWavelength(obj, wavelength)
+            % set min wavelength for WMRS
+            if wavelength < obj.MINWAVE
+                obj.minWavlength = obj.MINWAVE;
+            else
+                obj.minWavelength = wavelength;
+            end
+        end
+        
         function obj = setExposureTime(obj, time)
 
             obj.ExposureTime = time;

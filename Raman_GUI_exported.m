@@ -56,7 +56,6 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         tmr % Timer class
         LaserHandle % Laser class
         spectrometerHandle % spectrometer class
-        wavelenght_LUT % 1d interpolation for current to wavelength conversion
         CalibrationDone = false % Flag set to true if calibration has be carried out.
     end
     properties (Access = public)
@@ -103,10 +102,6 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             
             %add spectrometer setup here
             app.spectrometerHandle = Andor();
-            
-            % set up LUT
-            T = readtable("FHM_laser_look_up_table.csv"); % read in look up table
-            app.wavelenght_LUT = griddedInterpolant(T.current, T.wavelength);
             
             %set up spectra viewer
             app.AquireAxes.XLim = [app.MinRamanShiftEditField.Value, app.MaxRamanShiftEditField.Value];

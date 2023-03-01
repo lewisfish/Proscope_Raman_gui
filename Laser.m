@@ -80,6 +80,8 @@ classdef Laser
             obj.digital_heater_current0 = 218 * (obj.heater_current / 2.);
             obj.digital_heater_current1 = 218 * (obj.heater_current / 2.);
     
+            % https://uk.mathworks.com/matlabcentral/answers/110249-how-can-i-identify-com-port-devices-on-windows
+            % https://superuser.com/questions/835848/how-to-view-serial-com-ports-but-not-through-device-manager
             % open communication to the laser and set variables on device
 %             obj.sport = serialport('COM4', 38400, 'DataBits', 8);
             % check if it is always com4 if not to write code to check for siliconlabs as per
