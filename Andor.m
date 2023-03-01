@@ -94,10 +94,10 @@ classdef Andor < handle
             [ret]=SetExposureTime(obj.ExposureTime);                  %   Set exposure time in seconds
             AndorIssueWarning(ret, "SetExposureTime");
 
-            [ret]=SetReadMode(obj.ReadMode);                         
+            [ret]=SetReadMode(obj.ReadMode);
             AndorIssueWarning(ret, "SetReadMode");
 
-            [ret]=SetTriggerMode(obj.TriggerMode);                      
+            [ret]=SetTriggerMode(obj.TriggerMode);
             AndorIssueWarning(ret, "SetTriggerMode");
 
             [ret, obj.XPixels, obj.YPixels]=GetDetector();         %   Get the CCD size
@@ -119,7 +119,7 @@ classdef Andor < handle
            % setup shamrock grating
 
             [ret] = ShamrockInitialize('');
-            ShamrockIssueError(ret, "ShamrockInitialize");     
+            ShamrockIssueError(ret, "ShamrockInitialize");
             
             % get device
             % TODO check device numbers
@@ -226,7 +226,7 @@ classdef Andor < handle
             AndorIssueWarning(ret, "StartAcquisition");
            
             gstatus = 0;
-            while(gstatus ~= atmcd.DRV_IDLE)                
+            while(gstatus ~= atmcd.DRV_IDLE)
                 [ret,gstatus]=AndorGetStatus;
                 AndorIssueWarning(ret, "AndorGetStatus during Acquisition wait loop");                
             end
@@ -262,7 +262,6 @@ classdef Andor < handle
 
             while ret ~= atmcd.DRV_TEMP_STABILIZED
                 d.Message = sprintf('Current Temperature %d C', temp);
-                temp = temp - 1;
                 pause(1);
                 [ret, temp] = GetTemperature();
 
