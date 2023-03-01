@@ -97,11 +97,11 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                             'StartDelay',0,... % In seconds.
                             'TasksToExecute',inf,...  % number of times to update
                             'ExecutionMode','fixedSpacing');
-            app.LaserHandle = Laser();
-            app.LaserHandle.enableLaserHeaterPower();
+%             app.LaserHandle = Laser();
+%             app.LaserHandle.enableLaserHeaterPower();
             
             %add spectrometer setup here
-            app.spectrometerHandle = Andor();
+            app.spectrometerHandle = Andor(-70.0, 1, 0.01, 0, 0, 1, 150, 785.0, app.UIFigure);
             
             %set up spectra viewer
             app.AquireAxes.XLim = [app.MinRamanShiftEditField.Value, app.MaxRamanShiftEditField.Value];
@@ -140,10 +140,10 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function UIFigureCloseRequest(app, event)
             answer = questdlg("Do you want to shutdown the software?");
             if answer == "Yes"
-                app.spectrometerHandle.ShutDownSafe();
-                app.LaserHandle.switchOff();
-                delete(app.LaserHandle);
-                delete(app.spectrometerHandle);
+%                 app.spectrometerHandle.ShutDownSafe();
+%                 app.LaserHandle.switchOff();
+%                 delete(app.LaserHandle);
+%                 delete(app.spectrometerHandle);
                 stop(app.tmr);
                 delete(app.tmr);
                 delete(app);

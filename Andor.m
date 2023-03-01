@@ -53,7 +53,7 @@ classdef Andor < handle
     end
    
     methods
-        function obj = Andor(CCDTemp, AquistionMode, ExposureTime, ReadMode, TriggerMode, PreAmpGain, slitWidth, centralWavelength)
+        function obj = Andor(CCDTemp, AquistionMode, ExposureTime, ReadMode, TriggerMode, PreAmpGain, slitWidth, centralWavelength, fig)
             arguments
                 CCDTemp = -70.0
                 AquistionMode = 1 % single scan
@@ -63,6 +63,7 @@ classdef Andor < handle
                 PreAmpGain = 1 % 1x
                 slitWidth = 150 % um
                 centralWavelength = 785.0; % nm
+                fig = 0
             end        
 
             % set variables for spectrometer
@@ -84,7 +85,7 @@ classdef Andor < handle
             obj.SetCCDTemp(CCDTemp)   
 
             % start cooling CCD
-            obj.CoolCCD();
+            obj.CoolCCD(fig);
             
             % setup spectrometer variables
             [ret]=SetAcquisitionMode(obj.AquistionMode);
@@ -245,7 +246,7 @@ classdef Andor < handle
             AndorIssueWarning(ret, "SetShutter Close");
         end
         
-        function obj = CoolCCD(obj)
+        function obj = CoolCCD(obj, fig)
             obj.CCDCooled = 0;
             % turn on cooler
             [ret] = CoolerON();
@@ -256,10 +257,12 @@ classdef Andor < handle
             AndorIssueWarning(ret, "SetTemperature");
             [ret, temp] = GetTemperature();
 
-            f = waitbar(0,'1','Name','Cooling CCD');
+            d = uiprogressdlg(fig, "Title", 'CCD Cooling', 'Message', "CCD Currently Cooling", 'Indeterminate','on');
+            drawnow
 
             while ret ~= atmcd.DRV_TEMP_STABILIZED
-                waitbar(temp/obj.CCDTemp,f,sprintf('Current CCD temperature %d C',num2str(temp)))
+                d.Message = sprintf('Current Temperature %d C', temp);
+                temp = temp - 1;
                 pause(1);
                 [ret, temp] = GetTemperature();
 
@@ -268,6 +271,7 @@ classdef Andor < handle
                     break;
                 end
             end
+            close(d)
             obj.CCDCooled = 1;
         end 
 
