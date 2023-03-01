@@ -64,7 +64,6 @@ classdef Andor < handle
                 slitWidth = 150 % um
                 centralWavelength = 785.0; % nm
             end        
-%             addpath('C:\Program Files\MATLAB\R2021a\toolbox\Andor')
 
             % set variables for spectrometer
             obj.AquistionMode = AquistionMode;
@@ -190,7 +189,6 @@ classdef Andor < handle
             
         end
         function obj = ShutDownSafe(obj)
-            %fix get temp warning, as its off...
             [ret, iCoolerStatus] = IsCoolerOn();
             AndorIssueWarning(ret);
             if iCoolerStatus
@@ -199,11 +197,15 @@ classdef Andor < handle
             end
            
             [ret, temp] = GetTemperature();
-%             AndorIssueWarning(ret, "GetTemperature");
-
+            if ret ~= 20001 || ret ~= 20034   
+                AndorIssueWarning(ret, "GetTemperature");
+            end
+            
             while temp < -20
                 [ret, temp] = GetTemperature();
-%                 AndorIssueWarning(ret, "GetTemperature");
+                if ret ~= 20001 || ret ~= 20034   
+                    AndorIssueWarning(ret, "GetTemperature");
+                end
                 pause(1.0);
             end
             [ret]=AndorShutDown();
@@ -253,12 +255,11 @@ classdef Andor < handle
             ret = SetTemperature(obj.CCDTemp);
             AndorIssueWarning(ret, "SetTemperature");
             [ret, temp] = GetTemperature();
-            msg = ["Current CCD temperature ", num2str(temp) 'C'];
 
-            h = msgbox(msg, "Cooling CCD");
+            f = waitbar(0,'1','Name','Cooling CCD');
+
             while ret ~= atmcd.DRV_TEMP_STABILIZED
-                msg = ["Current CCD temperature ", num2str(temp) 'C'];
-                set(findobj(h,'Tag','MessageBox'),'String',msg);
+                waitbar(temp/obj.CCDTemp,f,sprintf('Current CCD temperature %d C',num2str(temp)))
                 pause(1);
                 [ret, temp] = GetTemperature();
 
@@ -268,7 +269,6 @@ classdef Andor < handle
                 end
             end
             obj.CCDCooled = 1;
-            disp("done!")
         end 
 
         function SetCCDTemp(obj, temp)

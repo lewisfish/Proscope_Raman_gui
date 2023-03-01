@@ -66,11 +66,11 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function saveData(app, colA, colB, dirPath)
             varNames = {'Raman Shift/cm^-1', 'Counts/arb.'};
             T = table(colA, colB, 'VariableNames',varNames);
-            disp(dirPath);
-            disp(app.PatientID);
+%             disp(dirPath);
+%             disp(app.PatientID);
             filename = join([dirPath, app.PatientID], "\");
-            disp(filename);
-            writetable(T, join(["test" ".csv"], ""));
+%             disp(filename);
+            writetable(T, join([filename ".csv"], ""));
         end
     end
 
@@ -129,7 +129,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                 app.spectrometerHandle.setExposureTime(1.0);
                 [w, s] = app.spectrometerHandle.AquireSpectra();
                 saveData(app, w, s, app.CalibrationSaveDir);
-                plot(app.AquireAxes, w, s, 'r-');
+                plot(app.CalibrationAxes, w, s, 'r-');
                 app.spectrometerHandle.setExposureTime(expTime);
             else
                 uiwait(msgbox("CCD not fully cooled!","Calibration Warning","warn", "modal"));
@@ -308,13 +308,11 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Value changed function: MaxWavelengthEditField
         function MaxWavelengthEditFieldValueChanged(app, event)
             value = app.MaxWavelengthEditField.Value;
-%             app.AquireAxes.XLim = [app.MinWavelengthEditField.Value, value];
         end
 
         % Value changed function: MinWavelengthEditField
         function MinWavelengthEditFieldValueChanged(app, event)
             value = app.MinWavelengthEditField.Value;
-%             app.AquireAxes.XLim = [value, app.MaxWavelengthEditField.Value];
         end
 
         % Value changed function: TuningStepsEditField
