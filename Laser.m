@@ -33,7 +33,7 @@ classdef Laser
 
     properties
         Temperature {mustBeNumeric} % Target temperature of the laser. Default value is 25 C
-        Current {mustBeNumeric} % Laser current. Default value is 40 mA
+        Current {mustBeNumeric} % Laser current. Default value is 180 mA for ~50mW
         HeaterCurrent {mustBeNumeric} % Current for the laser heater drivers. This value is split evenly between the two drivers. Default value is 550mA
     end
     properties (Access = private, Constant)
@@ -51,9 +51,12 @@ classdef Laser
         UART_TMP_SET      = (0x35)
         OFF               = ('00')
         ON                = ('01')
+        MIN_CURRENT       = 401
+        MAX_CURRENT       = 600
     end
     properties (Access = private)
        % private properties used internally
+       power_LUT % look up table for converting power to laser current
        SerialPort % serial port
        DigitalTemperature {mustBeNumeric}
        DigitalCurrent {mustBeNumeric}
@@ -68,21 +71,18 @@ classdef Laser
             arguments
                 % default arguments
                 temperature = 25
-                current = 40
+                current = 180
                 heater_current = 550
             end
-            obj.Temperature = temperature;
-            obj.Current = current;
-            obj.HeaterCurrent = heater_current;
-            % convert analogue to "digital". Conversions taken from documentation.
-            obj.DigitalTemperature = (obj.Temperature * 1140) - 3207;
-            obj.DigitalCurrent = obj.Current * 134.5;
-            obj.DigitalHeaterCurrent0 = 218 * (obj.HeaterCurrent / 2.);
-            obj.DigitalHeaterCurrent1 = 218 * (obj.HeaterCurrent / 2.);
+            obj.setTemperature(temperature);
+            obj.setCurrent(current);
+            obj.setHeaterCurrent(heater_current);
     
+            T = readtable("FHM_laser_LUT_current_vs_power.csv");
+            obj.power_LUT = griddedInterpolant(T.power, T.current);
+
             % get all serial devices
             devices = obj.IDSerialComs();
-%             devices = {"test0", 5;"Silicon Labs CP210x USB to UART Bridge",4;"test2",7};
             deviceNames = devices(:, 1);
             COMPorts = devices(:, 2);
             
@@ -100,14 +100,14 @@ classdef Laser
             % open communication to the laser and set variables on device
             obj.SerialPort = serialport(COMPort, 38400, 'DataBits', 8);
 
-            obj.setTemperature();
-            obj.setCurrent();
-            obj.setHeaterCurrent();
+            obj.writeTemperature();
+            obj.writeCurrent();
+            obj.writeHeaterCurrent();
             obj.enableTEC();
             obj.checkReady();
             obj.enableLaserHeaterPower();
         end
-        function obj = setTemperature(obj)
+        function obj = writeTemperature(obj)
             % Set target temperature of laser in Celcius
             msg = [0x2a, 0x06, obj.UART_TMP_SET];
             bytes_vector = obj.dec2Bytes(obj.DigitalTemperature);
@@ -122,7 +122,7 @@ classdef Laser
             obj.checkError(data, obj.UART_TMP_SET, 'set temperature');
         end
         
-        function obj = setCurrent(obj)
+        function obj = writeCurrent(obj)
             % Set the the laser current in mA
             msg = [0x2a, 0x06, obj.UART_LASER_CURRENT];
             bytes_vector = obj.dec2Bytes(obj.DigitalCurrent);
@@ -134,7 +134,7 @@ classdef Laser
             obj.checkError(data, obj.UART_LASER_CURRENT, 'set current');
         end
         
-        function obj = setHeaterCurrent(obj)
+        function obj = writeHeaterCurrent(obj)
             % Set the heater current for driver 0 and 1 in mA
             % ultimately sets the laser wavelength.
             msg = [0x2a, 0x6, obj.UART_I_HEAT0];
@@ -217,6 +217,44 @@ classdef Laser
             data = read(obj.SerialPort,4,'uint8'); % message recieved should be 0x2a 0x04 0x30 0x1e
 %             data = [0x2a, 0x04, 0x30, 0x1e]; % dummy data
             obj.checkError(data, obj.UART_EN_TEC, 'disable TEC');
+        end
+        
+        function obj = setHeaterCurrent(obj, current)
+            if current > obj.MIN_CURRENT && current < obj.MAX_CURRENT
+                obj.HeaterCurrent = current;
+            else
+                obj.HeaterCurrent = 550;
+            end
+            % convert analogue to "digital". Conversions taken from documentation.
+            obj.DigitalHeaterCurrent0 = 218 * (obj.HeaterCurrent / 2.);
+            obj.DigitalHeaterCurrent1 = 218 * (obj.HeaterCurrent / 2.);
+
+        end
+        
+        function obj = setCurrent(obj, current)
+            if current > 0 && current < 200 
+                obj.Current = current;
+            else
+                obj.Current = 180;
+            end
+            % convert analogue to "digital". Conversions taken from documentation.
+            obj.DigitalCurrent = obj.Current * 134.5;
+        end
+        
+        function obj = setCurrentviaPower(obj, power)
+            % set laser current from user defined power value
+            current = obj.power_LUT(power);
+            obj.setCurrent(current);
+        end
+        
+        function obj = setTemperature(obj, temperature)
+            if temperature > 20 && temperature < 40
+                obj.Temperature = temperature;
+            else
+                obj.Temperature = 25;
+            end
+            % convert analogue to "digital". Conversions taken from documentation.
+            obj.DigitalTemperature = (obj.Temperature * 1140) - 3207;
         end
         
         function out = getError(obj, error_code)

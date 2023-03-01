@@ -305,13 +305,13 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Value changed function: MaxWavelengthEditField
         function MaxWavelengthEditFieldValueChanged(app, event)
             value = app.MaxWavelengthEditField.Value;
-            
+            app.AquireAxes.XLim = [app.MinWavelengthEditField.Value, value];
         end
 
         % Value changed function: MinWavelengthEditField
         function MinWavelengthEditFieldValueChanged(app, event)
             value = app.MinWavelengthEditField.Value;
-            
+            app.AquireAxes.XLim = [value, app.MinWavelengthEditField.Value];
         end
 
         % Value changed function: TuningStepsEditField
@@ -323,7 +323,8 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Value changed function: LaserPowerEditField
         function LaserPowerEditFieldValueChanged(app, event)
             value = app.LaserPowerEditField.Value;
-            
+            %this is heater current in FBH parlence...
+            obj.LaserHandle.setCurrentViaPower(value);
         end
 
         % Key press function: UIFigure
@@ -519,7 +520,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             % Create CentralWavelengthEditField
             app.CentralWavelengthEditField = uieditfield(app.GridLayout, 'numeric');
             app.CentralWavelengthEditField.Limits = [0 Inf];
-            app.CentralWavelengthEditField.ValueDisplayFormat = '%.2f';
+            app.CentralWavelengthEditField.ValueDisplayFormat = '%.2f nm';
             app.CentralWavelengthEditField.ValueChangedFcn = createCallbackFcn(app, @changeCentralWavelength, true);
             app.CentralWavelengthEditField.HorizontalAlignment = 'center';
             app.CentralWavelengthEditField.FontSize = 18;
@@ -540,7 +541,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             % Create MaxWavelengthEditField
             app.MaxWavelengthEditField = uieditfield(app.GridLayout, 'numeric');
             app.MaxWavelengthEditField.Limits = [0 Inf];
-            app.MaxWavelengthEditField.ValueDisplayFormat = '%.2f';
+            app.MaxWavelengthEditField.ValueDisplayFormat = '%.2f nm';
             app.MaxWavelengthEditField.ValueChangedFcn = createCallbackFcn(app, @MaxWavelengthEditFieldValueChanged, true);
             app.MaxWavelengthEditField.HorizontalAlignment = 'center';
             app.MaxWavelengthEditField.FontSize = 18;
@@ -560,7 +561,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             % Create MinWavelengthEditField
             app.MinWavelengthEditField = uieditfield(app.GridLayout, 'numeric');
             app.MinWavelengthEditField.Limits = [0 Inf];
-            app.MinWavelengthEditField.ValueDisplayFormat = '%.2f';
+            app.MinWavelengthEditField.ValueDisplayFormat = '%.2f nm';
             app.MinWavelengthEditField.ValueChangedFcn = createCallbackFcn(app, @MinWavelengthEditFieldValueChanged, true);
             app.MinWavelengthEditField.HorizontalAlignment = 'center';
             app.MinWavelengthEditField.FontSize = 18;
@@ -599,67 +600,72 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
             % Create MinRamanShiftEditField
             app.MinRamanShiftEditField = uieditfield(app.GridLayout, 'numeric');
+            app.MinRamanShiftEditField.Limits = [0 Inf];
+            app.MinRamanShiftEditField.ValueDisplayFormat = '%11.4g nm';
             app.MinRamanShiftEditField.ValueChangedFcn = createCallbackFcn(app, @MinRamanShiftEditFieldValueChanged, true);
+            app.MinRamanShiftEditField.HorizontalAlignment = 'left';
             app.MinRamanShiftEditField.FontSize = 18;
             app.MinRamanShiftEditField.Visible = 'off';
             app.MinRamanShiftEditField.Layout.Row = 1;
-            app.MinRamanShiftEditField.Layout.Column = 9;
+            app.MinRamanShiftEditField.Layout.Column = 8;
 
             % Create MaxRamanShiftEditField
             app.MaxRamanShiftEditField = uieditfield(app.GridLayout, 'numeric');
+            app.MaxRamanShiftEditField.Limits = [0 Inf];
+            app.MaxRamanShiftEditField.ValueDisplayFormat = '%11.4g nm';
             app.MaxRamanShiftEditField.ValueChangedFcn = createCallbackFcn(app, @MaxRamanShiftEditFieldValueChanged, true);
             app.MaxRamanShiftEditField.FontSize = 18;
             app.MaxRamanShiftEditField.Visible = 'off';
             app.MaxRamanShiftEditField.Layout.Row = 1;
-            app.MaxRamanShiftEditField.Layout.Column = 13;
+            app.MaxRamanShiftEditField.Layout.Column = [12 13];
             app.MaxRamanShiftEditField.Value = 3000;
 
             % Create SlitWidthEditField
             app.SlitWidthEditField = uieditfield(app.GridLayout, 'numeric');
             app.SlitWidthEditField.Limits = [0 Inf];
+            app.SlitWidthEditField.ValueDisplayFormat = '%11.4g um';
             app.SlitWidthEditField.ValueChangedFcn = createCallbackFcn(app, @changeSlitWidth, true);
             app.SlitWidthEditField.FontSize = 18;
             app.SlitWidthEditField.Visible = 'off';
             app.SlitWidthEditField.Layout.Row = 2;
-            app.SlitWidthEditField.Layout.Column = 9;
+            app.SlitWidthEditField.Layout.Column = [7 8];
             app.SlitWidthEditField.Value = 150;
 
             % Create MinRamanShiftEditFieldLabel
             app.MinRamanShiftEditFieldLabel = uilabel(app.GridLayout);
-            app.MinRamanShiftEditFieldLabel.HorizontalAlignment = 'right';
             app.MinRamanShiftEditFieldLabel.FontSize = 18;
             app.MinRamanShiftEditFieldLabel.Visible = 'off';
             app.MinRamanShiftEditFieldLabel.Layout.Row = 1;
-            app.MinRamanShiftEditFieldLabel.Layout.Column = [6 8];
+            app.MinRamanShiftEditFieldLabel.Layout.Column = [4 7];
             app.MinRamanShiftEditFieldLabel.Text = 'Min Raman Shift';
 
             % Create MaxRamanShiftEditFieldLabel
             app.MaxRamanShiftEditFieldLabel = uilabel(app.GridLayout);
-            app.MaxRamanShiftEditFieldLabel.HorizontalAlignment = 'right';
             app.MaxRamanShiftEditFieldLabel.FontSize = 18;
             app.MaxRamanShiftEditFieldLabel.Visible = 'off';
             app.MaxRamanShiftEditFieldLabel.Layout.Row = 1;
-            app.MaxRamanShiftEditFieldLabel.Layout.Column = [10 12];
+            app.MaxRamanShiftEditFieldLabel.Layout.Column = [9 11];
             app.MaxRamanShiftEditFieldLabel.Text = 'Max Raman Shift';
 
             % Create SlitWidthEditFieldLabel
             app.SlitWidthEditFieldLabel = uilabel(app.GridLayout);
-            app.SlitWidthEditFieldLabel.HorizontalAlignment = 'right';
             app.SlitWidthEditFieldLabel.FontSize = 18;
             app.SlitWidthEditFieldLabel.Visible = 'off';
             app.SlitWidthEditFieldLabel.Layout.Row = 2;
-            app.SlitWidthEditFieldLabel.Layout.Column = [6 7];
+            app.SlitWidthEditFieldLabel.Layout.Column = [5 6];
             app.SlitWidthEditFieldLabel.Text = 'Slit Width';
 
             % Create LaserPowerEditField
             app.LaserPowerEditField = uieditfield(app.GridLayout, 'numeric');
+            app.LaserPowerEditField.Limits = [0 200];
+            app.LaserPowerEditField.ValueDisplayFormat = '%.2f mW';
             app.LaserPowerEditField.ValueChangedFcn = createCallbackFcn(app, @LaserPowerEditFieldValueChanged, true);
             app.LaserPowerEditField.HorizontalAlignment = 'center';
             app.LaserPowerEditField.FontSize = 18;
             app.LaserPowerEditField.Visible = 'off';
             app.LaserPowerEditField.Layout.Row = 9;
             app.LaserPowerEditField.Layout.Column = [16 17];
-            app.LaserPowerEditField.Value = 550;
+            app.LaserPowerEditField.Value = 50.5;
 
             % Create LaserPowerEditFieldLabel
             app.LaserPowerEditFieldLabel = uilabel(app.GridLayout);
@@ -688,21 +694,20 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
             % Create CCDTempEditFieldLabel
             app.CCDTempEditFieldLabel = uilabel(app.GridLayout);
-            app.CCDTempEditFieldLabel.HorizontalAlignment = 'right';
             app.CCDTempEditFieldLabel.FontSize = 18;
             app.CCDTempEditFieldLabel.Visible = 'off';
             app.CCDTempEditFieldLabel.Layout.Row = 2;
-            app.CCDTempEditFieldLabel.Layout.Column = [10 12];
+            app.CCDTempEditFieldLabel.Layout.Column = [10 11];
             app.CCDTempEditFieldLabel.Text = 'CCD Temp';
 
             % Create CCDTempEditField
             app.CCDTempEditField = uieditfield(app.GridLayout, 'numeric');
-            app.CCDTempEditField.ValueDisplayFormat = '%.0f';
+            app.CCDTempEditField.ValueDisplayFormat = '%.0f C';
             app.CCDTempEditField.ValueChangedFcn = createCallbackFcn(app, @CCDTempEditFieldValueChanged, true);
             app.CCDTempEditField.FontSize = 18;
             app.CCDTempEditField.Visible = 'off';
             app.CCDTempEditField.Layout.Row = 2;
-            app.CCDTempEditField.Layout.Column = 13;
+            app.CCDTempEditField.Layout.Column = [12 13];
             app.CCDTempEditField.Value = -70;
 
             % Show the figure after all components are created

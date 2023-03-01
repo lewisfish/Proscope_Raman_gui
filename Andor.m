@@ -44,6 +44,7 @@ classdef Andor < handle
        numbGratings
        CCDCooled         % if 1 then CCD is cooled else not cooled to set temp
        wavelength_LUT    % 1D interpolation for current to wavelength conversion
+       power_LUT         % 1D interpolation for heater current to power conversion
        abortSignal       % if 1 then abort aquistion
     end
     properties (Access = private)
@@ -108,7 +109,7 @@ classdef Andor < handle
             obj.setupShamrock();
             
             % set up LUT
-            T = readtable("FHM_laser_look_up_table.csv"); % read in look up table
+            T = readtable("FHM_laser_LUT_heatercurrent_vs_wavelength.csv"); % read in look up table
             obj.wavelength_LUT = griddedInterpolant(T.current, T.wavelength);
             obj.MINWAVE = min(T.wavelength);
             obj.MAXWAVE = max(T.wavelength);
