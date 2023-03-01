@@ -81,9 +81,9 @@ classdef Laser
             obj.DigitalHeaterCurrent1 = 218 * (obj.HeaterCurrent / 2.);
     
 
-            devices = IDSerialComs();
-            deviceNames = devices[:, 1];
-            COMPort = devices[:, 2];
+            devices = obj.IDSerialComs();
+            deviceNames = devices{:, 1};
+            COMPort = devices{:, 2};
             
             % open communication to the laser and set variables on device
             obj.SerialPort = serialport('COM4', 38400, 'DataBits', 8);
@@ -253,6 +253,9 @@ classdef Laser
 
             Skey = 'HKEY_LOCAL_MACHINE\HARDWARE\DEVICEMAP\SERIALCOMM';
             [~, list] = dos(['REG QUERY ' Skey]);
+            if size(list,2) == 1
+               return 
+            end
             if ischar(list) && strcmp('ERROR',list(1:5))
                 disp('Error: IDSerialComs - No SERIALCOMM registry entry')
                 return;
