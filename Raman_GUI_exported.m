@@ -308,17 +308,18 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Value changed function: MaxWavelengthEditField
         function MaxWavelengthEditFieldValueChanged(app, event)
             value = app.MaxWavelengthEditField.Value;
+            app.spectrometerHandle.setMaxWavelength(value);
         end
 
         % Value changed function: MinWavelengthEditField
         function MinWavelengthEditFieldValueChanged(app, event)
             value = app.MinWavelengthEditField.Value;
+            app.spectrometerHandle.setMinWavelength(value);
         end
 
         % Value changed function: TuningStepsEditField
         function TuningStepsEditFieldValueChanged(app, event)
             value = app.TuningStepsEditField.Value;
-            
         end
 
         % Value changed function: LaserPowerEditField

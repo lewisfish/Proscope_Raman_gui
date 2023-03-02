@@ -166,6 +166,7 @@ classdef Andor < handle
         end
         
         function obj = setMaxWavelength(obj, wavelength)
+            % set max wavelength for WMRS
             if wavelength < obj.MAXWAVE
                 obj.maxWavlength = obj.MAXWAVE;
             else
