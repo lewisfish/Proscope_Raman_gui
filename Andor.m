@@ -57,7 +57,7 @@ classdef Andor < handle
             arguments
                 CCDTemp = -70.0
                 AquistionMode = 1 % single scan
-                ExposureTime = 0.01 % seconds
+                ExposureTime = 0.1 % seconds
                 ReadMode = 0 % FVB
                 TriggerMode = 0 % internal
                 PreAmpGain = 1 % 1x
@@ -237,8 +237,11 @@ classdef Andor < handle
             end
             disp("acquired");
             
+            [ret, ccd, ~]=GetDetector();         %   Get the CCD size
+            AndorIssueWarning(ret, "GetDetector");
+
             %TODO this sometimes fails saying wrong amount of pixels
-            [ret, imageData] = GetMostRecentImage(obj.XPixels);
+            [ret, imageData] = GetMostRecentImage(ccd);
             AndorIssueWarning(ret, "GetMostRecentImage");
 
             if ret == atmcd.DRV_SUCCESS
