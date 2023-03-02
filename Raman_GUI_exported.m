@@ -63,10 +63,15 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
     end
     methods (Access = private)
         
-        function saveData(app, colA, colB, dirPath)
+        function saveData(app, colA, colB, dirPath, name)
+            if ~exist('name','var')
+                filename = join([dirPath, app.PatientID], "\");
+            else
+                name = join([name app.PatientID], "_");
+                filename = join([dirPath, name], "\");
+            end
             varNames = {'Raman Shift/cm^-1', 'Counts/arb.'};
             T = table(colA, colB, 'VariableNames',varNames);
-            filename = join([dirPath, app.PatientID], "\");
             writetable(T, join([filename ".csv"], ""));
         end
     end
@@ -94,8 +99,8 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                             'StartDelay',0,... % In seconds.
                             'TasksToExecute',inf,...  % number of times to update
                             'ExecutionMode','fixedSpacing');
-%             app.LaserHandle = Laser();
-%             app.LaserHandle.enableLaserHeaterPower();
+            app.LaserHandle = Laser();
+            app.LaserHandle.enableLaserHeaterPower();
             
             %add spectrometer setup here
             app.spectrometerHandle = Andor(-70.0, 1, 0.01, 0, 0, 1, 150, 785.0, app.UIFigure);
@@ -122,10 +127,10 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             if app.spectrometerHandle.CCDCooled == 1
                 app.CalibrationDone = true;
                 %integration time is 1s, rest is standard
-                expTime = 0.1;%app.spectrometerHandle.ExposureTime;
+                expTime = app.spectrometerHandle.ExposureTime;
                 app.spectrometerHandle.setExposureTime(1.0);
-                [w, s] = app.spectrometerHandle.AquireSpectra();
-                saveData(app, w, s, app.CalibrationSaveDir);
+                [w, s] = app.spectrometerHandle.AquireSpectra(app.UIFigure);
+                saveData(app, w, s, app.CalibrationSaveDir, 'calibration');
                 plot(app.CalibrationAxes, w, s, 'r-');
                 app.spectrometerHandle.setExposureTime(expTime);
             else
@@ -138,8 +143,8 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             answer = questdlg("Do you want to shutdown the software?");
             if answer == "Yes"
                 app.spectrometerHandle.ShutDownSafe(app.UIFigure);
-%                 app.LaserHandle.switchOff();
-%                 delete(app.LaserHandle);
+                app.LaserHandle.switchOff();
+                delete(app.LaserHandle);
                 delete(app.spectrometerHandle);
                 stop(app.tmr);
                 delete(app.tmr);
@@ -153,7 +158,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                 if app.time == 0
                     start(app.tmr);
                 end
-                [w, s] = app.spectrometerHandle.AquireSpectra();
+                [w, s] = app.spectrometerHandle.AquireSpectra(app.UIFigure);
                 saveData(app, w, s, app.SpectraSaveDir);
                 plot(app.AquireAxes, w, s, 'r-');
                 
@@ -281,7 +286,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
         % Button pushed function: AbortButton
         function abortButtonPushed(app, event)
-            app.spectrometerHandle.abortSignal = 1;
+            app.spectrometerHandle.abortSignal = true;
         end
 
         % Value changed function: SlitWidthEditField
@@ -322,7 +327,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Value changed function: LaserPowerEditField
         function LaserPowerEditFieldValueChanged(app, event)
             value = app.LaserPowerEditField.Value;
-            %this is heater current in FBH parlence... error in here
+            %this is heater current in FBH parlance...
             app.LaserHandle.setCurrentViaPower(value);
         end
 

@@ -72,7 +72,7 @@ classdef Andor < handle
             obj.ReadMode = ReadMode;
             obj.TriggerMode = TriggerMode;
             obj.PreAmpGain = PreAmpGain;
-            obj.abortSignal = 0;
+            obj.abortSignal = false;
             obj.CentralWavelength = centralWavelength;
             obj.SlitWidth = slitWidth;
 
@@ -197,7 +197,7 @@ classdef Andor < handle
             end
            
             [ret, temp] = GetTemperature();
-            if ret ~= 20001 || ret ~= 20034   
+            if ret ~= atmcd.DRV_TEMP_OFF
                 AndorIssueWarning(ret, "GetTemperature");
             end
             
@@ -206,20 +206,24 @@ classdef Andor < handle
 
             while temp < -20
                 [ret, temp] = GetTemperature();
-                if ret ~= 20001 || ret ~= 20034   
-                    AndorIssueWarning(ret, "GetTemperature");
+                disp(ret)
+                if ret ~= atmcd.DRV_TEMP_OFF
+                    AndorIssueWarning(ret, "GetTemperature Loop");
                 end
                 d.Message = sprintf('Current Temperature %d C', temp);
                 pause(1.0);
             end
-%             close(d);
+
+            close(d);
+
             [ret]=AndorShutDown();
             AndorIssueWarning(ret, "AndorShutDown");
+
             [ret]=ShamrockClose();
             ShamrockIssueWarning(ret, "ShamrockClose");
         end
         
-        function [waves, spectra] = AquireSpectra(obj)
+        function [waves, spectra] = AquireSpectra(obj, fig)
 
             [ret] = PrepareAcquisition();
             AndorIssueWarning(ret, "PrepareAcquisition");
@@ -231,27 +235,36 @@ classdef Andor < handle
             [ret] = StartAcquisition();                  
             AndorIssueWarning(ret, "StartAcquisition");
            
+            d = uiprogressdlg(fig, "Title", 'Acquiring spectra', 'Message', "Acquiring spectra", 'Indeterminate','on');
+            drawnow
+            
             gstatus = 0;
             while(gstatus ~= atmcd.DRV_IDLE)
                 [ret,gstatus]=AndorGetStatus;
-                AndorIssueWarning(ret, "AndorGetStatus during Acquisition wait loop");                
+                AndorIssueWarning(ret, "AndorGetStatus during Acquisition wait loop");
+                if obj.abortSignal == true
+                   [ret]=AbortAcquisition();
+                   AndorIssueWarning(ret, "AbortAcquistion");
+                   break;
+                end
             end
-            disp("acquired");
             
-            [ret, ccd, ~]=GetDetector();         %   Get the CCD size
-            AndorIssueWarning(ret, "GetDetector");
-            disp(ccd)
-            disp(obj.XPixels)
-            %TODO this sometimes fails saying wrong amount of pixels
-            [ret, imageData] = GetMostRecentImage(ccd);
-            AndorIssueWarning(ret, "GetMostRecentImage");
-
-            if ret == atmcd.DRV_SUCCESS
-               spectra = imageData;
-               waves = linspace(0,3000, length(spectra))';
+            close(d);
+            
+            if obj.abortSignal == true
+                obj.abortSignal = false;
+                uiwait(msgbox('Acquistion aborted!', 'Aborted!',"warn", "modal"));
             else
-                spectra = zeros(3000, 1);
-                waves = linspace(0, 3000, length(spectra))';
+                [ret, imageData] = GetMostRecentImage(obj.XPixels);
+                AndorIssueWarning(ret, "GetMostRecentImage");
+
+                if ret == atmcd.DRV_SUCCESS
+                   spectra = imageData;
+                   waves = linspace(0,3000, length(spectra))';
+                else
+                    spectra = zeros(3000, 1);
+                    waves = linspace(0, 3000, length(spectra))';
+                end
             end
             [ret]=SetShutter(1, 2, 1, 1); %close shutter
             AndorIssueWarning(ret, "SetShutter Close");
