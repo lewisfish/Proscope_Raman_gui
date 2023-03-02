@@ -222,7 +222,7 @@ classdef Andor < handle
             ShamrockIssueWarning(ret, "ShamrockClose");
         end
         
-        function [waves, spectra] = AquireSpectra(obj, fig)
+        function [waves, spectra] = AquireSpectra(obj)
 
             [ret] = PrepareAcquisition();
             AndorIssueWarning(ret, "PrepareAcquisition");
