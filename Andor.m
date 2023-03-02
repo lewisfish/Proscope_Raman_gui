@@ -233,43 +233,31 @@ classdef Andor < handle
             disp('Starting Acquisition');
             [ret] = StartAcquisition();                  
             AndorIssueWarning(ret, "StartAcquisition");
-           
-%             d = uiprogressdlg(fig, "Title", 'Acquiring spectra', 'Message', "Acquiring spectra", 'Indeterminate','on');
-%             drawnow
-            
-            gstatus = 0;
+
+            [~,gstatus]=AndorGetStatus();
+            AndorIssueWarning(ret, "AndorGetStatus before Acquisition wait loop");
             while(gstatus ~= atmcd.DRV_IDLE)
-                [ret,gstatus]=AndorGetStatus;
+                [ret,gstatus]=AndorGetStatus();
                 AndorIssueWarning(ret, "AndorGetStatus during Acquisition wait loop");
-                if obj.abortSignal == true
-                   [ret]=AbortAcquisition();
-                   AndorIssueWarning(ret, "AbortAcquistion");
-                   break;
-                end
             end
-            
-%             close(d);
-            
-            if obj.abortSignal == true
-                obj.abortSignal = false;
-                uiwait(msgbox('Acquistion aborted!', 'Aborted!',"warn", "modal"));
-                % use data in most recent image?
+
+            [ret, imageData] = GetMostRecentImage(obj.XPixels);
+            AndorIssueWarning(ret, "GetMostRecentImage");
+
+            if ret == atmcd.DRV_SUCCESS
+               spectra = imageData;
+               waves = linspace(0,3000, length(spectra))';
+            else
                 spectra = zeros(3000, 1);
                 waves = linspace(0, 3000, length(spectra))';
-            else
-                [ret, imageData] = GetMostRecentImage(obj.XPixels);
-                AndorIssueWarning(ret, "GetMostRecentImage");
-
-                if ret == atmcd.DRV_SUCCESS
-                   spectra = imageData;
-                   waves = linspace(0,3000, length(spectra))';
-                else
-                    spectra = zeros(3000, 1);
-                    waves = linspace(0, 3000, length(spectra))';
-                end
             end
             [ret]=SetShutter(1, 2, 1, 1); %close shutter
             AndorIssueWarning(ret, "SetShutter Close");
+        end
+        
+        function obj = Abort(obj)
+            [ret] = AbortAcquisition();
+            AndorIssueError(ret, 'abort');
         end
         
         function obj = CoolCCD(obj, fig)
