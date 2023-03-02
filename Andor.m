@@ -202,19 +202,24 @@ classdef Andor < handle
                 AndorIssueWarning(ret, "GetTemperature");
             end
             
+            d = uiprogressdlg(fig, "Title", 'CCD warming', 'Message', "CCD Currently warming", 'Indeterminate','on');
+            drawnow
+
             while temp < -20
                 [ret, temp] = GetTemperature();
                 if ret ~= 20001 || ret ~= 20034   
                     AndorIssueWarning(ret, "GetTemperature");
                 end
+                d.Message = sprintf('Current Temperature %d C', temp);
                 pause(1.0);
             end
+            close(d);
             [ret]=AndorShutDown();
             AndorIssueWarning(ret, "AndorShutDown");
         end
         
         function [waves, spectra] = AquireSpectra(obj)
-           
+
             [ret] = PrepareAcquisition();
             AndorIssueWarning(ret, "PrepareAcquisition");
             
