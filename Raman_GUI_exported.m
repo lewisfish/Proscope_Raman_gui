@@ -66,10 +66,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function saveData(app, colA, colB, dirPath)
             varNames = {'Raman Shift/cm^-1', 'Counts/arb.'};
             T = table(colA, colB, 'VariableNames',varNames);
-%             disp(dirPath);
-%             disp(app.PatientID);
             filename = join([dirPath, app.PatientID], "\");
-%             disp(filename);
             writetable(T, join([filename ".csv"], ""));
         end
     end
@@ -97,8 +94,8 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                             'StartDelay',0,... % In seconds.
                             'TasksToExecute',inf,...  % number of times to update
                             'ExecutionMode','fixedSpacing');
-%             app.LaserHandle = Laser();
-%             app.LaserHandle.enableLaserHeaterPower();
+            app.LaserHandle = Laser();
+            app.LaserHandle.enableLaserHeaterPower();
             
             %add spectrometer setup here
             app.spectrometerHandle = Andor(-70.0, 1, 0.01, 0, 0, 1, 150, 785.0, app.UIFigure);
@@ -107,7 +104,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.AquireAxes.XLim = [app.MinRamanShiftEditField.Value, app.MaxRamanShiftEditField.Value];
             
             % add time to patientID
-            app.dateTime = string(datetime('now','TimeZone','local','Format','dd-MM-yyyy''T''HH:mm:ss'));
+            app.dateTime = string(datetime('now','TimeZone','local','Format','dd-MM-yyyy''T''HHmmss'));
         end
 
         % Button pushed function: SetSavePathButton
@@ -140,10 +137,10 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function UIFigureCloseRequest(app, event)
             answer = questdlg("Do you want to shutdown the software?");
             if answer == "Yes"
-%                 app.spectrometerHandle.ShutDownSafe();
-%                 app.LaserHandle.switchOff();
-%                 delete(app.LaserHandle);
-%                 delete(app.spectrometerHandle);
+                app.spectrometerHandle.ShutDownSafe();
+                app.LaserHandle.switchOff();
+                delete(app.LaserHandle);
+                delete(app.spectrometerHandle);
                 stop(app.tmr);
                 delete(app.tmr);
                 delete(app);

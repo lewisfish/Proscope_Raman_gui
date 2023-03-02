@@ -87,6 +87,9 @@ classdef Andor < handle
             % start cooling CCD
             obj.CoolCCD(fig);
             
+            d = uiprogressdlg(fig, "Title", 'Setup Spectrometer', 'Message', "Setting up spectrometer", 'Indeterminate','on');
+            drawnow
+
             % setup spectrometer variables
             [ret]=SetAcquisitionMode(obj.AquistionMode);
             AndorIssueWarning(ret, "SetAcquisitionMode");
@@ -107,7 +110,7 @@ classdef Andor < handle
             AndorIssueWarning(ret, "SetImage");
             
             obj.setupShamrock();
-            
+            close(d);
             % set up LUT
             T = readtable("FHM_laser_LUT_heatercurrent_vs_wavelength.csv"); % read in look up table
             obj.wavelength_LUT = griddedInterpolant(T.current, T.wavelength);
@@ -122,15 +125,11 @@ classdef Andor < handle
             ShamrockIssueError(ret, "ShamrockInitialize");
             
             % get device
-            % TODO check device numbers
             [ret, deviceCount] = ShamrockGetNumberDevices();
             ShamrockIssueWarning(ret, "ShamrockGetNumberDevices");
+            disp(deviceCount)
             if ret == Shamrock.SHAMROCK_SUCCESS
-                if deviceCount >1 %== 2 %strange in lab 106, return deviceCount 3!!!!increased from 2 to 3 in 22/04/2019
-                    obj.shamrockDev = 0;
-                else
-                    obj.shamrockDev = deviceCount-1;
-                end
+                obj.shamrockDev = deviceCount-1;
             end
             
             [ret, obj.numbGratings] = ShamrockGetNumberGratings(obj.shamrockDev);
