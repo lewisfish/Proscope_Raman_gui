@@ -127,7 +127,6 @@ classdef Andor < handle
             % get device
             [ret, deviceCount] = ShamrockGetNumberDevices();
             ShamrockIssueWarning(ret, "ShamrockGetNumberDevices");
-            disp(deviceCount)
             if ret == Shamrock.SHAMROCK_SUCCESS
                 obj.shamrockDev = deviceCount-1;
             end
@@ -189,7 +188,7 @@ classdef Andor < handle
             AndorIssueWarning(ret, "SetExposureTime");
             
         end
-        function obj = ShutDownSafe(obj)
+        function obj = ShutDownSafe(obj, fig)
             [ret, iCoolerStatus] = IsCoolerOn();
             AndorIssueWarning(ret);
             if iCoolerStatus
@@ -213,9 +212,11 @@ classdef Andor < handle
                 d.Message = sprintf('Current Temperature %d C', temp);
                 pause(1.0);
             end
-            close(d);
+%             close(d);
             [ret]=AndorShutDown();
             AndorIssueWarning(ret, "AndorShutDown");
+            [ret]=ShamrockClose();
+            ShamrockIssueWarning(ret, "ShamrockClose");
         end
         
         function [waves, spectra] = AquireSpectra(obj)
@@ -239,7 +240,8 @@ classdef Andor < handle
             
             [ret, ccd, ~]=GetDetector();         %   Get the CCD size
             AndorIssueWarning(ret, "GetDetector");
-
+            disp(ccd)
+            disp(obj.XPixels)
             %TODO this sometimes fails saying wrong amount of pixels
             [ret, imageData] = GetMostRecentImage(ccd);
             AndorIssueWarning(ret, "GetMostRecentImage");

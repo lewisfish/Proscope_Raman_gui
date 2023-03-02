@@ -94,8 +94,8 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                             'StartDelay',0,... % In seconds.
                             'TasksToExecute',inf,...  % number of times to update
                             'ExecutionMode','fixedSpacing');
-            app.LaserHandle = Laser();
-            app.LaserHandle.enableLaserHeaterPower();
+%             app.LaserHandle = Laser();
+%             app.LaserHandle.enableLaserHeaterPower();
             
             %add spectrometer setup here
             app.spectrometerHandle = Andor(-70.0, 1, 0.01, 0, 0, 1, 150, 785.0, app.UIFigure);
@@ -137,9 +137,9 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function UIFigureCloseRequest(app, event)
             answer = questdlg("Do you want to shutdown the software?");
             if answer == "Yes"
-                app.spectrometerHandle.ShutDownSafe();
-                app.LaserHandle.switchOff();
-                delete(app.LaserHandle);
+                app.spectrometerHandle.ShutDownSafe(app.UIFigure);
+%                 app.LaserHandle.switchOff();
+%                 delete(app.LaserHandle);
                 delete(app.spectrometerHandle);
                 stop(app.tmr);
                 delete(app.tmr);
@@ -322,7 +322,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Value changed function: LaserPowerEditField
         function LaserPowerEditFieldValueChanged(app, event)
             value = app.LaserPowerEditField.Value;
-            %this is heater current in FBH parlence...
+            %this is heater current in FBH parlence... error in here
             app.LaserHandle.setCurrentViaPower(value);
         end
 
