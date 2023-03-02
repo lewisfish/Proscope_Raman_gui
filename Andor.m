@@ -237,6 +237,7 @@ classdef Andor < handle
             end
             disp("acquired");
             
+            %TODO this sometimes fails saying wrong amount of pixels
             [ret, imageData] = GetMostRecentImage(obj.XPixels);
             AndorIssueWarning(ret, "GetMostRecentImage");
 
