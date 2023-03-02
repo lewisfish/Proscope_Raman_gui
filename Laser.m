@@ -1,4 +1,4 @@
-classdef Laser
+classdef Laser < handle
 % class to control FBH diode laser for driving the Raman Spectroscopy measurements.
 %
 %  To talk to the laser we use the following packet protocol:

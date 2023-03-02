@@ -144,8 +144,6 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             if answer == "Yes"
                 app.spectrometerHandle.ShutDownSafe(app.UIFigure);
                 app.LaserHandle.switchOff();
-                delete(app.LaserHandle);
-                delete(app.spectrometerHandle);
                 stop(app.tmr);
                 delete(app.tmr);
                 delete(app);
@@ -328,7 +326,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function LaserPowerEditFieldValueChanged(app, event)
             value = app.LaserPowerEditField.Value;
             %this is heater current in FBH parlance...
-            app.LaserHandle.setCurrentViaPower(value);
+            app = app.LaserHandle.setCurrentViaPower(value);
         end
 
         % Key press function: UIFigure

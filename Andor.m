@@ -206,7 +206,6 @@ classdef Andor < handle
 
             while temp < -20
                 [ret, temp] = GetTemperature();
-                disp(ret)
                 if ret ~= atmcd.DRV_TEMP_OFF
                     AndorIssueWarning(ret, "GetTemperature Loop");
                 end
@@ -235,8 +234,8 @@ classdef Andor < handle
             [ret] = StartAcquisition();                  
             AndorIssueWarning(ret, "StartAcquisition");
            
-            d = uiprogressdlg(fig, "Title", 'Acquiring spectra', 'Message', "Acquiring spectra", 'Indeterminate','on');
-            drawnow
+%             d = uiprogressdlg(fig, "Title", 'Acquiring spectra', 'Message', "Acquiring spectra", 'Indeterminate','on');
+%             drawnow
             
             gstatus = 0;
             while(gstatus ~= atmcd.DRV_IDLE)
@@ -249,11 +248,14 @@ classdef Andor < handle
                 end
             end
             
-            close(d);
+%             close(d);
             
             if obj.abortSignal == true
                 obj.abortSignal = false;
                 uiwait(msgbox('Acquistion aborted!', 'Aborted!',"warn", "modal"));
+                % use data in most recent image?
+                spectra = zeros(3000, 1);
+                waves = linspace(0, 3000, length(spectra))';
             else
                 [ret, imageData] = GetMostRecentImage(obj.XPixels);
                 AndorIssueWarning(ret, "GetMostRecentImage");
