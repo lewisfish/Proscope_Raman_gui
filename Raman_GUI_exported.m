@@ -86,10 +86,10 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             free_Gbytes = free_bytes / (1024^3);
             if free_Gbytes < 10
                 if free_Gbytes < 5
-                    uiwait(msgbox("Not Enough Memory on Hard Drive!","Memory Error","error", "modal"));
+                    uialert(app.UIFigure, "Not Enough Memory on Hard Drive!","Memory Error");
                     delete(app);
                 end
-                uiwait(msgbox("Warning, less than 10Gb of disk space free!","Memory Warning","warn", "modal"));
+                uialert(app.UIFigure, "Warning, less than 10Gb of disk space free!","Memory Warning",'Icon','warning');
             end
             
             % Set up timer
@@ -115,7 +115,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Button pushed function: SetSavePathButton
         function SetSavePathButtonPushed(app, event)
             if isempty(app.PatientID)
-                uiwait(msgbox("PatientID not Entered!","Calibration Warning","warn", "modal"));
+                uialert(app.UIFigure, "PatientID not Entered!","Calibration Warning");
             else
                 app.CalibrationSaveDir = uigetdir("", "Patient data Folder");
                 app.CalibrateButton.Visible = "on";
@@ -134,7 +134,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                 plot(app.CalibrationAxes, w, s, 'r-');
                 app.spectrometerHandle.setExposureTime(expTime);
             else
-                uiwait(msgbox("CCD not fully cooled!","Calibration Warning","warn", "modal"));
+                uialert(app.UIFigure, "CCD not fully cooled!","Calibration Warning","Icon","warning");
             end
         end
 
@@ -153,17 +153,21 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Button pushed function: AquireButton
         function AquireButtonPushed(app, event)
             if app.CalibrationDone
-                if app.time == 0
-                    start(app.tmr);
+                if exist(app.SpectraSaveDir)
+                    if app.time == 0
+                        start(app.tmr);
+                    end
+                    [w, s] = app.spectrometerHandle.AquireSpectra(app.UIFigure);
+                    saveData(app, w, s, app.SpectraSaveDir);
+                    plot(app.AquireAxes, w, s, 'r-');
+                    
+                    app.SpectraAcquired = app.SpectraAcquired + 1;
+                    app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
+                else
+                    uialert(app.UIFigure, "Save path for spectra not set!", "Path not set")
                 end
-                [w, s] = app.spectrometerHandle.AquireSpectra(app.UIFigure);
-                saveData(app, w, s, app.SpectraSaveDir);
-                plot(app.AquireAxes, w, s, 'r-');
-                
-                app.SpectraAcquired = app.SpectraAcquired + 1;
-                app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
             else
-                uiwait(msgbox("Calibration Data not taken!","Calibration Warning","warn", "modal"));
+                uialert(app.UIFigure, "Calibration Data not taken!","Calibration Warning");
             end
         end
 
@@ -211,7 +215,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                 app.EngineeringModeButton.Visible = "off";
                 app.ClinicalModeButton.Visible = "on";
             else
-                uiwait(msgbox("Wrong Password!","Security Error","error", "modal"));
+                uialert(app.UIFigure, "Wrong Password!","Security Error");
             end 
         end
 
@@ -284,7 +288,8 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
         % Button pushed function: AbortButton
         function abortButtonPushed(app, event)
-            app.spectrometerHandle.abortSignal = true;
+            app.SpectraAcquired.Abort();
+            uialert(app.UIFigure, 'Acquisition aborted!', 'Warning','Icon','warning');
         end
 
         % Value changed function: SlitWidthEditField
@@ -326,7 +331,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function LaserPowerEditFieldValueChanged(app, event)
             value = app.LaserPowerEditField.Value;
             %this is heater current in FBH parlance...
-            app = app.LaserHandle.setCurrentViaPower(value);
+            app.LaserHandle.setCurrentViaPower(value);
         end
 
         % Key press function: UIFigure
