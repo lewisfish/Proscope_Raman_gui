@@ -288,7 +288,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
         % Button pushed function: AbortButton
         function abortButtonPushed(app, event)
-            app.SpectraAcquired.Abort();
+            app.spectrometerHandle.Abort();
             uialert(app.UIFigure, 'Acquisition aborted!', 'Warning','Icon','warning');
         end
 
