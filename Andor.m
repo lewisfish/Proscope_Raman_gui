@@ -96,7 +96,7 @@ classdef Andor < handle
 
             [ret]=SetExposureTime(obj.ExposureTime);                  %   Set exposure time in seconds
             AndorIssueWarning(ret, "SetExposureTime");
-% 
+
             [ret]=SetReadMode(obj.ReadMode);
             AndorIssueWarning(ret, "SetReadMode");
 
@@ -105,7 +105,7 @@ classdef Andor < handle
 
             [ret, obj.XPixels, obj.YPixels]=GetDetector();         %   Get the CCD size
             AndorIssueWarning(ret, "GetDetector");
-% 
+
             [ret]=SetImage(1, 1, 1, obj.XPixels, 1, obj.YPixels); %   Set the image size
             AndorIssueWarning(ret, "SetImage");
             
@@ -113,7 +113,7 @@ classdef Andor < handle
             close(d);
             % set up LUT
             T = readtable("FHM_laser_LUT_heatercurrent_vs_wavelength.csv"); % read in look up table
-            obj.wavelength_LUT = griddedInterpolant(T.current, T.wavelength);
+            obj.wavelength_LUT = griddedInterpolant(T.wavelength, T.current);
             obj.MINWAVE = min(T.wavelength);
             obj.MAXWAVE = max(T.wavelength);
         end
@@ -136,7 +136,7 @@ classdef Andor < handle
             
             [ret, obj.CurrentGrating] = ShamrockGetGrating(obj.shamrockDev);
             ShamrockIssueWarning(ret, "ShamrockGetGrating");
-            [ret, lines, blaze, home, offset] = ShamrockGetGratingInfo(obj.shamrockDev, obj.CurrentGrating);
+            [ret, ~, ~, ~, ~] = ShamrockGetGratingInfo(obj.shamrockDev, obj.CurrentGrating);
             ShamrockIssueWarning(ret, "ShamrockGetGratingInfo");
             
             obj.setSlitWidth(obj.SlitWidth);
