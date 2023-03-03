@@ -2,7 +2,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                       matlab.ui.Figure
+        RamanModuleUIFigure            matlab.ui.Figure
         TabGroup                       matlab.ui.container.TabGroup
         CalibrationTab                 matlab.ui.container.Tab
         PatientIDEditField_2Label      matlab.ui.control.Label
@@ -57,6 +57,8 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         LaserHandle % Laser class
         spectrometerHandle % spectrometer class
         CalibrationDone = false % Flag set to true if calibration has be carried out.
+        WMRS = false % Flag set to true if WRMS mode is active.
+        steps % number of spectra to take for WRMS mode.
     end
     properties (Access = public)
         time = 0 % start time. Must be public as passed to outside function.
@@ -86,10 +88,10 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             free_Gbytes = free_bytes / (1024^3);
             if free_Gbytes < 10
                 if free_Gbytes < 5
-                    uialert(app.UIFigure, "Not Enough Memory on Hard Drive!","Memory Error");
+                    uialert(app.RamanModuleUIFigure, "Not Enough Memory on Hard Drive!","Memory Error");
                     delete(app);
                 end
-                uialert(app.UIFigure, "Warning, less than 10Gb of disk space free!","Memory Warning",'Icon','warning');
+                uialert(app.RamanModuleUIFigure, "Warning, less than 10Gb of disk space free!","Memory Warning",'Icon','warning');
             end
             
             % Set up timer
@@ -103,7 +105,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.LaserHandle.enableLaserHeaterPower();
             
             %add spectrometer setup here
-            app.spectrometerHandle = Andor(-70.0, 1, 1.00, 0, 0, 1, 150, 785.0, app.UIFigure);
+            app.spectrometerHandle = Andor(-70.0, 1, 1.00, 0, 0, 1, 150, 785.0, app.RamanModuleUIFigure);
             
             %set up spectra viewer
             app.AquireAxes.XLim = [app.MinRamanShiftEditField.Value, app.MaxRamanShiftEditField.Value];
@@ -115,7 +117,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Button pushed function: SetSavePathButton
         function SetSavePathButtonPushed(app, event)
             if isempty(app.PatientID)
-                uialert(app.UIFigure, "PatientID not Entered!","Calibration Warning");
+                uialert(app.RamanModuleUIFigure, "PatientID not Entered!","Calibration Warning");
             else
                 app.CalibrationSaveDir = uigetdir("", "Patient data Folder");
                 app.CalibrateButton.Visible = "on";
@@ -134,15 +136,15 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                 plot(app.CalibrationAxes, w, s, 'r-');
                 app.spectrometerHandle.setExposureTime(expTime);
             else
-                uialert(app.UIFigure, "CCD not fully cooled!","Calibration Warning","Icon","warning");
+                uialert(app.RamanModuleUIFigure, "CCD not fully cooled!","Calibration Warning","Icon","warning");
             end
         end
 
-        % Callback function: ExitButton, UIFigure
+        % Callback function: ExitButton, RamanModuleUIFigure
         function UIFigureCloseRequest(app, event)
             answer = questdlg("Do you want to shutdown the software?");
             if answer == "Yes"
-                app.spectrometerHandle.ShutDownSafe(app.UIFigure);
+                app.spectrometerHandle.ShutDownSafe(app.RamanModuleUIFigure);
                 app.LaserHandle.switchOff();
                 stop(app.tmr);
                 delete(app.tmr);
@@ -158,17 +160,44 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                     if app.time == 0
                         start(app.tmr);
                     end
-                    [w, s] = app.spectrometerHandle.AquireSpectra();
-                    saveData(app, w, s, app.SpectraSaveDir);
-                    plot(app.AquireAxes, w, s, 'r-');
-                    
-                    app.SpectraAcquired = app.SpectraAcquired + 1;
-                    app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
+                    if app.WMRS
+                        %WRMS mode
+                        wavelengthStep = (app.spectrometerHandle.maxWavelength - app.spectrometerHandle.minWavlength) / app.steps; % nm
+                        wavelength = app.spectrometerHandle.minWavelength;
+                        spectrums = [];
+                        for i=1:app.steps
+                            % convert wavelength to current
+                            current = app.spectrometerHandle.wavelength_LUT(wavelength);
+                            %set current
+                            app.LaserHandle.setHeaterCurrent(current);
+                            % write current to laser
+                            app.LaserHandle.writeHeaterCurrent();
+                            % get new spectra
+                            [w, s] = app.spectrometerHandle.AquireSpectra();
+                            spectrums = [spectrums s];
+                            %increment wavelength
+                            wavelength = wavelength + wavelengthStep;
+                            
+                            app.SpectraAcquired = app.SpectraAcquired + 1;
+                            app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
+                        end
+                        % calculate WMRS
+                        v1 = calculateWMRspec(specs, 785);
+                        plot(app.AquireAxes, w, v1, 'r-');
+                    else
+                        % single spectra mode
+                        [w, s] = app.spectrometerHandle.AquireSpectra();
+                        saveData(app, w, s, app.SpectraSaveDir);
+                        plot(app.AquireAxes, w, s, 'r-');
+                        
+                        app.SpectraAcquired = app.SpectraAcquired + 1;
+                        app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
+                    end
                 else
-                    uialert(app.UIFigure, "Save path for spectra not set!", "Path not set")
+                    uialert(app.RamanModuleUIFigure, "Save path for spectra not set!", "Path not set")
                 end
             else
-                uialert(app.UIFigure, "Calibration Data not taken!","Calibration Warning");
+                uialert(app.RamanModuleUIFigure, "Calibration Data not taken!","Calibration Warning");
             end
             app.AcquireButton.Enable = true;
         end
@@ -176,9 +205,9 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Button pushed function: WMRSButton
         function WMRSButtonPushed(app, event)
             app.WMRSButton.Visible = "off";
+            app.WMRS = true;
             app.SingleRamanButton.Visible = "on";
             title(app.AquireAxes, 'WMR Spectra');
-            % todo change laser and spectrometer properties...
         end
 
         % Button pushed function: EngineeringModeButton
@@ -217,7 +246,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                 app.EngineeringModeButton.Visible = "off";
                 app.ClinicalModeButton.Visible = "on";
             else
-                uialert(app.UIFigure, "Wrong Password!","Security Error");
+                uialert(app.RamanModuleUIFigure, "Wrong Password!","Security Error");
             end 
         end
 
@@ -235,10 +264,18 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
         % Button pushed function: SingleRamanButton
         function SingleRamanButtonPushed(app, event)
+            if app.WMRS == true
+                app.WMRS = false;
+                % reset wavelength of laser back to default.
+                wavelength = app.spectrometerHandle.CentralWavelength;
+                current = app.spectrometerHandle.wavelength_LUT(wavelength);
+                app.LaserHandle.setHeaterCurrent(current);
+                app.LaserHandle.writeHeaterCurrent();
+            end
             app.WMRSButton.Visible = "on";
             app.SingleRamanButton.Visible = "off";
             title(app.AquireAxes, 'Raman Spectra');
-            % todo change laser and spectrometer properties...
+
         end
 
         % Button pushed function: ClinicalModeButton
@@ -291,7 +328,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Button pushed function: AbortButton
         function abortButtonPushed(app, event)
             app.spectrometerHandle.Abort();
-            uialert(app.UIFigure, 'Acquisition aborted!', 'Warning','Icon','warning');
+            uialert(app.RamanModuleUIFigure, 'Acquisition aborted!', 'Warning','Icon','warning');
         end
 
         % Value changed function: SlitWidthEditField
@@ -327,6 +364,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Value changed function: TuningStepsEditField
         function TuningStepsEditFieldValueChanged(app, event)
             value = app.TuningStepsEditField.Value;
+            app.steps = value;
         end
 
         % Value changed function: LaserPowerEditField
@@ -336,8 +374,8 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.LaserHandle.setCurrentViaPower(value);
         end
 
-        % Key press function: UIFigure
-        function UIFigureKeyPress(app, event)
+        % Key press function: RamanModuleUIFigure
+        function RamanModuleUIFigureKeyPress(app, event)
             key = event.Key;
             switch key
                 case 'a' % aquire
@@ -354,15 +392,16 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Create UIFigure and components
         function createComponents(app)
 
-            % Create UIFigure and hide until all components are created
-            app.UIFigure = uifigure('Visible', 'off');
-            app.UIFigure.Position = [100 100 1024 768];
-            app.UIFigure.Name = 'MATLAB App';
-            app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @UIFigureCloseRequest, true);
-            app.UIFigure.KeyPressFcn = createCallbackFcn(app, @UIFigureKeyPress, true);
+            % Create RamanModuleUIFigure and hide until all components are created
+            app.RamanModuleUIFigure = uifigure('Visible', 'off');
+            app.RamanModuleUIFigure.Position = [100 100 1024 768];
+            app.RamanModuleUIFigure.Name = 'Raman Module';
+            app.RamanModuleUIFigure.Icon = 'logo.jpeg';
+            app.RamanModuleUIFigure.CloseRequestFcn = createCallbackFcn(app, @UIFigureCloseRequest, true);
+            app.RamanModuleUIFigure.KeyPressFcn = createCallbackFcn(app, @RamanModuleUIFigureKeyPress, true);
 
             % Create TabGroup
-            app.TabGroup = uitabgroup(app.UIFigure);
+            app.TabGroup = uitabgroup(app.RamanModuleUIFigure);
             app.TabGroup.Position = [2 1 1024 768];
 
             % Create CalibrationTab
@@ -720,7 +759,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.CCDTempEditField.Value = -70;
 
             % Show the figure after all components are created
-            app.UIFigure.Visible = 'on';
+            app.RamanModuleUIFigure.Visible = 'on';
         end
     end
 
@@ -734,7 +773,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             createComponents(app)
 
             % Register the app with App Designer
-            registerApp(app, app.UIFigure)
+            registerApp(app, app.RamanModuleUIFigure)
 
             % Execute the startup function
             runStartupFcn(app, @startupFcn)
@@ -748,7 +787,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function delete(app)
 
             % Delete UIFigure when app is deleted
-            delete(app.UIFigure)
+            delete(app.RamanModuleUIFigure)
         end
     end
 end

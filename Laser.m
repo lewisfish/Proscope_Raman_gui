@@ -229,7 +229,6 @@ classdef Laser < handle
             % convert analogue to "digital". Conversions taken from documentation.
             obj.DigitalHeaterCurrent0 = 218 * (obj.HeaterCurrent / 2.);
             obj.DigitalHeaterCurrent1 = 218 * (obj.HeaterCurrent / 2.);
-
         end
         
         function obj = setCurrent(obj, current)
