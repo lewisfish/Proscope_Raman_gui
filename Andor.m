@@ -55,9 +55,9 @@ classdef Andor < handle
     methods
         function obj = Andor(CCDTemp, AquistionMode, ExposureTime, ReadMode, TriggerMode, PreAmpGain, slitWidth, centralWavelength, fig)
             arguments
-                CCDTemp = -70.0
+                CCDTemp = -70.0 % celcius
                 AquistionMode = 1 % single scan
-                ExposureTime = 0.1 % seconds
+                ExposureTime = 1.0 % seconds
                 ReadMode = 0 % FVB
                 TriggerMode = 0 % internal
                 PreAmpGain = 1 % 1x
@@ -79,12 +79,12 @@ classdef Andor < handle
             ret = AndorInitialize('');
             AndorIssueError(ret, "AndorInitialize");
             
-            % get allowable temp range for CCD
+%             get allowable temp range for CCD
             [ret, obj.minTemp, obj.maxTemp] = GetTemperatureRange();
             AndorIssueWarning(ret, "GetTemperatureRange");
             obj.SetCCDTemp(CCDTemp)   
 
-            % start cooling CCD
+%             start cooling CCD
             obj.CoolCCD(fig);
             
             d = uiprogressdlg(fig, "Title", 'Setup Spectrometer', 'Message', "Setting up spectrometer", 'Indeterminate','on');
@@ -96,7 +96,7 @@ classdef Andor < handle
 
             [ret]=SetExposureTime(obj.ExposureTime);                  %   Set exposure time in seconds
             AndorIssueWarning(ret, "SetExposureTime");
-
+% 
             [ret]=SetReadMode(obj.ReadMode);
             AndorIssueWarning(ret, "SetReadMode");
 
@@ -105,7 +105,7 @@ classdef Andor < handle
 
             [ret, obj.XPixels, obj.YPixels]=GetDetector();         %   Get the CCD size
             AndorIssueWarning(ret, "GetDetector");
-
+% 
             [ret]=SetImage(1, 1, 1, obj.XPixels, 1, obj.YPixels); %   Set the image size
             AndorIssueWarning(ret, "SetImage");
             
@@ -237,10 +237,14 @@ classdef Andor < handle
             [~,gstatus]=AndorGetStatus();
             AndorIssueWarning(ret, "AndorGetStatus before Acquisition wait loop");
             while(gstatus ~= atmcd.DRV_IDLE)
+                % check if abort has been pushed
+                if obj.abortSignal == true
+                    obj.abortSignal = false;
+                    break
+                end
                 [ret,gstatus]=AndorGetStatus();
                 AndorIssueWarning(ret, "AndorGetStatus during Acquisition wait loop");
             end
-
             [ret, imageData] = GetMostRecentImage(obj.XPixels);
             AndorIssueWarning(ret, "GetMostRecentImage");
 
@@ -256,6 +260,7 @@ classdef Andor < handle
         end
         
         function obj = Abort(obj)
+            obj.abortSignal = true;
             [ret] = AbortAcquisition();
             AndorIssueError(ret, 'abort');
         end

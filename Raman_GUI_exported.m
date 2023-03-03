@@ -39,7 +39,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         WMRSButton                     matlab.ui.control.Button
         ClinicalModeButton             matlab.ui.control.Button
         AbortButton                    matlab.ui.control.Button
-        AquireButton                   matlab.ui.control.Button
+        AcquireButton                  matlab.ui.control.Button
         SavePathButton                 matlab.ui.control.Button
         EngineeringModeButton          matlab.ui.control.Button
         LaserShutterButton             matlab.ui.control.Button
@@ -103,7 +103,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.LaserHandle.enableLaserHeaterPower();
             
             %add spectrometer setup here
-            app.spectrometerHandle = Andor(-70.0, 1, 0.01, 0, 0, 1, 150, 785.0, app.UIFigure);
+            app.spectrometerHandle = Andor(-70.0, 1, 1.00, 0, 0, 1, 150, 785.0, app.UIFigure);
             
             %set up spectra viewer
             app.AquireAxes.XLim = [app.MinRamanShiftEditField.Value, app.MaxRamanShiftEditField.Value];
@@ -150,8 +150,9 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             end       
         end
 
-        % Button pushed function: AquireButton
-        function AquireButtonPushed(app, event)
+        % Button pushed function: AcquireButton
+        function AcquireButtonPushed(app, event)
+            app.AcquireButton.Enable = false;
             if app.CalibrationDone
                 if exist(app.SpectraSaveDir)
                     if app.time == 0
@@ -169,6 +170,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             else
                 uialert(app.UIFigure, "Calibration Data not taken!","Calibration Warning");
             end
+            app.AcquireButton.Enable = true;
         end
 
         % Button pushed function: WMRSButton
@@ -339,7 +341,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             key = event.Key;
             switch key
                 case 'a' % aquire
-                    app.AquireButtonPushed();
+                    app.AcquireButtonPushed();
                 case 's' %stop
                     app.abortButtonPushed();
             end
@@ -451,14 +453,14 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.SavePathButton.Layout.Column = [1 2];
             app.SavePathButton.Text = 'Save Path';
 
-            % Create AquireButton
-            app.AquireButton = uibutton(app.GridLayout, 'push');
-            app.AquireButton.ButtonPushedFcn = createCallbackFcn(app, @AquireButtonPushed, true);
-            app.AquireButton.BackgroundColor = [0.0745 0.6235 1];
-            app.AquireButton.FontSize = 18;
-            app.AquireButton.Layout.Row = 12;
-            app.AquireButton.Layout.Column = [13 14];
-            app.AquireButton.Text = 'Aquire';
+            % Create AcquireButton
+            app.AcquireButton = uibutton(app.GridLayout, 'push');
+            app.AcquireButton.ButtonPushedFcn = createCallbackFcn(app, @AcquireButtonPushed, true);
+            app.AcquireButton.BackgroundColor = [0.0745 0.6235 1];
+            app.AcquireButton.FontSize = 18;
+            app.AcquireButton.Layout.Row = 12;
+            app.AcquireButton.Layout.Column = [13 14];
+            app.AcquireButton.Text = 'Acquire';
 
             % Create AbortButton
             app.AbortButton = uibutton(app.GridLayout, 'push');
