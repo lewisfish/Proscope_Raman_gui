@@ -166,6 +166,9 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                         wavelength = app.spectrometerHandle.minWavelength;
                         spectrums = [];
                         for i=1:app.steps
+                            if app.spectrometerHandle.abortSignal == true
+                                break;
+                            end
                             % convert wavelength to current
                             current = app.spectrometerHandle.wavelength_LUT(wavelength);
                             %set current
