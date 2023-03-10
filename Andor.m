@@ -39,7 +39,7 @@ classdef Andor < handle
        CurrentGrating    % current grating 
        CentralWavelength % in nm
        maxWavelength     % in nm. max wavelength for wmrs
-       minWavlength      % in nm. min wavelength for wmrs
+       minWavelength      % in nm. min wavelength for wmrs
        AxisWavelength
        numbGratings
        CCDCooled         % if 1 then CCD is cooled else not cooled to set temp
@@ -116,6 +116,8 @@ classdef Andor < handle
             obj.wavelength_LUT = griddedInterpolant(T.wavelength, T.current);
             obj.MINWAVE = min(T.wavelength);
             obj.MAXWAVE = max(T.wavelength);
+            obj.minWavelength = 754.5;%nm min wave for wmrs
+            obj.maxWavelength = 755.5;%nm min wave for wmrs
         end
 
         function obj = setupShamrock(obj)
@@ -175,7 +177,7 @@ classdef Andor < handle
         function obj = setMinWavelength(obj, wavelength)
             % set min wavelength for WMRS
             if wavelength < obj.MINWAVE
-                obj.minWavlength = obj.MINWAVE;
+                obj.minWavelength = obj.MINWAVE;
             else
                 obj.minWavelength = wavelength;
             end
@@ -294,7 +296,6 @@ classdef Andor < handle
         end 
 
         function SetCCDTemp(obj, temp)
-            
             if temp < obj.minTemp || temp > obj.maxTemp
                 obj.CCDTemp = -70.0;
             else

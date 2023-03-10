@@ -58,7 +58,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         spectrometerHandle % spectrometer class
         CalibrationDone = false % Flag set to true if calibration has be carried out.
         WMRS = false % Flag set to true if WRMS mode is active.
-        steps % number of spectra to take for WRMS mode.
+        steps =5% number of spectra to take for WRMS mode.
     end
     properties (Access = public)
         time = 0 % start time. Must be public as passed to outside function.
@@ -162,7 +162,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                     end
                     if app.WMRS
                         %WRMS mode
-                        wavelengthStep = (app.spectrometerHandle.maxWavelength - app.spectrometerHandle.minWavlength) / app.steps; % nm
+                        wavelengthStep = (app.spectrometerHandle.maxWavelength - app.spectrometerHandle.minWavelength) / app.steps; % nm
                         wavelength = app.spectrometerHandle.minWavelength;
                         spectrums = [];
                         for i=1:app.steps
@@ -182,7 +182,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                             app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
                         end
                         % calculate WMRS
-                        v1 = calculateWMRspec(specs, 785);
+                        v1 = calculateWMRspec(spectrums, 785);
                         plot(app.AquireAxes, w, v1, 'r-');
                     else
                         % single spectra mode
@@ -329,6 +329,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function abortButtonPushed(app, event)
             app.spectrometerHandle.Abort();
             uialert(app.RamanModuleUIFigure, 'Acquisition aborted!', 'Warning','Icon','warning');
+            app.AcquireButton.Enable = true;
         end
 
         % Value changed function: SlitWidthEditField

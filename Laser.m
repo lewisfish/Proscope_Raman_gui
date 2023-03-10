@@ -222,7 +222,7 @@ classdef Laser < handle
         
         function obj = setHeaterCurrent(obj, current)
             if current > obj.MIN_CURRENT && current < obj.MAX_CURRENT
-                obj.HeaterCurrent = current;
+                obj.HeaterCurrent = round(current);
             else
                 obj.HeaterCurrent = 550;
             end
