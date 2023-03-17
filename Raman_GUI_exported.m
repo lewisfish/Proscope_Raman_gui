@@ -163,10 +163,10 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                     end
                     if app.WMRS
                         %WRMS mode
-                        wavelengthStep = (app.spectrometerHandle.maxWavelength - app.spectrometerHandle.minWavelength) / app.steps; % nm
+                        wavelengthStep = (app.spectrometerHandle.maxWavelength - app.spectrometerHandle.minWavelength) / (app.steps-1); % nm
                         wavelength = app.spectrometerHandle.minWavelength;
                         spectrums = [];
-                        for i=1:app.steps
+                        for i=1:app.steps-1
                             if app.spectrometerHandle.abortSignal == true
                                 break;
                             end
@@ -621,7 +621,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.MinWavelengthEditField.Visible = 'off';
             app.MinWavelengthEditField.Layout.Row = 8;
             app.MinWavelengthEditField.Layout.Column = [16 17];
-            app.MinWavelengthEditField.Value = 754.5;
+            app.MinWavelengthEditField.Value = 784.5;
 
             % Create MinWavelengthEditFieldLabel
             app.MinWavelengthEditFieldLabel = uilabel(app.GridLayout);

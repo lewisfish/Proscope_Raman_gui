@@ -99,7 +99,7 @@ classdef Andor < handle
 
             [ret]=SetReadMode(obj.ReadMode);
             AndorIssueWarning(ret, "SetReadMode");
-
+ 
             [ret]=SetTriggerMode(obj.TriggerMode);
             AndorIssueWarning(ret, "SetTriggerMode");
 
@@ -116,8 +116,8 @@ classdef Andor < handle
             obj.wavelength_LUT = griddedInterpolant(T.wavelength, T.current);
             obj.MINWAVE = min(T.wavelength);
             obj.MAXWAVE = max(T.wavelength);
-            obj.minWavelength = 754.5;%nm min wave for wmrs
-            obj.maxWavelength = 755.5;%nm min wave for wmrs
+            obj.minWavelength = 784.5;%nm min wave for wmrs
+            obj.maxWavelength = 785.5;%nm min wave for wmrs
         end
 
         function obj = setupShamrock(obj)
@@ -242,7 +242,6 @@ classdef Andor < handle
                 % check if abort has been pushed
                 if obj.abortSignal == true
                     obj.abortSignal = false;
-                    disp("***************************************")
                     break
                 end
                 [ret,gstatus]=AndorGetStatus();
