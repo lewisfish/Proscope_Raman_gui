@@ -155,6 +155,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Button pushed function: AcquireButton
         function AcquireButtonPushed(app, event)
             app.AcquireButton.Enable = false;
+            drawnow;% force update of UI
             if app.CalibrationDone
                 if exist(app.SpectraSaveDir)
                     if app.time == 0

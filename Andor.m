@@ -242,6 +242,7 @@ classdef Andor < handle
                 % check if abort has been pushed
                 if obj.abortSignal == true
                     obj.abortSignal = false;
+                    disp("***************************************")
                     break
                 end
                 [ret,gstatus]=AndorGetStatus();
@@ -264,7 +265,9 @@ classdef Andor < handle
         function obj = Abort(obj)
             obj.abortSignal = true;
             [ret] = AbortAcquisition();
-            AndorIssueError(ret, 'abort');
+            if ret ~= atmcd.DRV_IDLE
+                AndorIssueError(ret, 'abort');
+            end
         end
         
         function obj = CoolCCD(obj, fig)

@@ -280,7 +280,7 @@ classdef Laser < handle
         function out = dec2Bytes(val)
             % Convert decimal to hexstring then to uint8 vector
 %             https://uk.mathworks.com/matlabcentral/answers/391490-how-can-i-represent-a-hexadecimal-string-in-a-128-bit-format-in-matlab
-            hexstr = dec2hex(val);
+            hexstr = dec2hex(val,4);
             byte_hex = string(permute(reshape(hexstr, 2, 2),[2 1]))';
             out = uint8(hex2dec(byte_hex));
         end
