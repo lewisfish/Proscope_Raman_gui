@@ -99,6 +99,15 @@ classdef Andor < handle
 
             [ret]=SetReadMode(obj.ReadMode);
             AndorIssueWarning(ret, "SetReadMode");
+            if obj.ReadMode == 1
+                % number of tracks
+                % track height
+                % offset
+                % bottom is the first pixels row of the first track
+                % gap is the number of rows between each track
+                SetMultiTrack(5, 20, 0, bottom, gap);
+                AndorIssueWarning(ret, "SetMultiTrack");
+            end
  
             [ret]=SetTriggerMode(obj.TriggerMode);
             AndorIssueWarning(ret, "SetTriggerMode");
