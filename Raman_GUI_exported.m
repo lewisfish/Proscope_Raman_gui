@@ -120,6 +120,9 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                 uialert(app.RamanModuleUIFigure, "PatientID not Entered!","Calibration Warning");
             else
                 app.CalibrationSaveDir = uigetdir("", "Patient data Folder");
+                %stop app losing focus
+                app.RamanModuleUIFigure.Visible = 'off';
+                app.RamanModuleUIFigure.Visible = 'on';
                 app.CalibrateButton.Visible = "on";
             end
         end
@@ -189,10 +192,17 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                         v1 = calculateWMRspec(spectrums, 785);
                         plot(app.AquireAxes, w, v1, 'r-');
                     else
-                        % single spectra mode
+                        single spectra mode
                         [w, s] = app.spectrometerHandle.AquireSpectra();
                         if app.spectrometerHandle.ReadMode == 4
-                            imshow(app.AquireAxes, s);
+%                             s = rand(1024*256,1);
+                            app.AquireAxes.XLim = [0,app.spectrometerHandle.XPixels];
+                            app.AquireAxes.YLim = [0,app.spectrometerHandle.YPixels];
+                            app.AquireAxes.XLabel.String = "";
+                            app.AquireAxes.YLabel.String = "";
+
+                            I=flip(transpose(reshape(s, app.spectrometerHandle.XPixels, app.spectrometerHandle.YPixels)),1);
+                            imagesc(app.AquireAxes, I);
                         else
                             saveData(app, w, s, app.SpectraSaveDir);
                             plot(app.AquireAxes, w, s, 'r-');
@@ -261,6 +271,9 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Button pushed function: SavePathButton
         function SavePathButtonPushed(app, event)
             app.SpectraSaveDir = uigetdir("", "Patient Data Folder");
+            %stop app losing focus
+            app.RamanModuleUIFigure.Visible = 'off';
+            app.RamanModuleUIFigure.Visible = 'on';
         end
 
         % Value changed function: PatientIDEditField

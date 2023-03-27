@@ -84,7 +84,7 @@ classdef Andor < handle
             AndorIssueWarning(ret, "GetTemperatureRange");
             obj.SetCCDTemp(CCDTemp)   
 
-%             start cooling CCD
+%           start cooling CCD
             obj.CoolCCD(fig);
             
             d = uiprogressdlg(fig, "Title", 'Setup Spectrometer', 'Message', "Setting up spectrometer", 'Indeterminate','on');
@@ -282,7 +282,14 @@ classdef Andor < handle
                 [ret,gstatus]=AndorGetStatus();
                 AndorIssueWarning(ret, "AndorGetStatus during Acquisition wait loop");
             end
-            [ret, imageData] = GetMostRecentImage(obj.XPixels);
+            
+            if obj.ReadMode == obj.FVB
+                [ret, imageData] = GetMostRecentImage(obj.XPixels);
+            elseif obj.ReadMode == obj.Image
+                [ret, imageData] = GetMostRecentImage(obj.XPixels*obj.YPixels);
+            elseif obj.ReadMode == obj.MultiTrack
+                AndorIssueError(20991, "MultiTrack in Acquire")
+            end
             AndorIssueWarning(ret, "GetMostRecentImage");
 
             if ret == atmcd.DRV_SUCCESS
