@@ -191,8 +191,12 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                     else
                         % single spectra mode
                         [w, s] = app.spectrometerHandle.AquireSpectra();
-                        saveData(app, w, s, app.SpectraSaveDir);
-                        plot(app.AquireAxes, w, s, 'r-');
+                        if app.spectrometerHandle.ReadMode == 4
+                            imshow(app.AquireAxes, s);
+                        else
+                            saveData(app, w, s, app.SpectraSaveDir);
+                            plot(app.AquireAxes, w, s, 'r-');
+                        end
                         
                         app.SpectraAcquired = app.SpectraAcquired + 1;
                         app.SpectraAcquiredEditField.Value = app.SpectraAcquired;

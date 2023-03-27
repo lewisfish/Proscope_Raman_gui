@@ -99,15 +99,6 @@ classdef Andor < handle
 
             [ret]=SetReadMode(obj.ReadMode);
             AndorIssueWarning(ret, "SetReadMode");
-            if obj.ReadMode == 1
-                % number of tracks
-                % track height
-                % offset
-                % bottom is the first pixels row of the first track
-                % gap is the number of rows between each track
-                SetMultiTrack(5, 20, 0, bottom, gap);
-                AndorIssueWarning(ret, "SetMultiTrack");
-            end
  
             [ret]=SetTriggerMode(obj.TriggerMode);
             AndorIssueWarning(ret, "SetTriggerMode");
@@ -129,6 +120,41 @@ classdef Andor < handle
             obj.maxWavelength = 785.5;%nm min wave for wmrs
         end
 
+        
+        function obj = SetReadMode(obj, readMode)
+           
+            obj.ReadMode = readMode;
+            [ret]=SetReadMode(obj.ReadMode);
+            AndorIssueWarning(ret, "SetReadMode");
+
+            if obj.ReadMode == obj.MultiTrack
+                % number of tracks
+                % track height
+                % offset
+                % bottom is the first pixels row of the first track
+                % gap is the number of rows between each track
+                SetMultiTrack(5, 20, 0, bottom, gap);
+                AndorIssueWarning(ret, "SetMultiTrack");
+            elseif obj.ReadMode == obj.FVB
+                AndorIssueWarning(ret, "SetFVB");
+            elseif obj.ReadMode == obj.Image
+                SetImage(1,1,1,1024,1,256)
+                AndorIssueWarning(ret, "SetImage");
+            else
+                disp("Warning ReadMode not supported!")
+                obj.ReadMode = obj.FVB;
+                [ret]=SetReadMode(obj.ReadMode);
+                AndorIssueWarning(ret, "SetReadMode");
+            end
+
+            [ret, obj.XPixels, obj.YPixels]=GetDetector();         %   Get the CCD size
+            AndorIssueWarning(ret, "GetDetector");
+
+            [ret]=SetImage(1, 1, 1, obj.XPixels, 1, obj.YPixels); %   Set the image size
+            AndorIssueWarning(ret, "SetImage");
+            
+        end
+        
         function obj = setupShamrock(obj)
            % setup shamrock grating
 
