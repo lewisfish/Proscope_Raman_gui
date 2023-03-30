@@ -185,6 +185,9 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                                 break
                             end
                             [w, s] = app.spectrometerHandle.AquireSpectra();
+                            if app.abortSignal
+                                break
+                            end
                             spectrums = [spectrums s];
                             %increment wavelength
                             wavelength = wavelength + wavelengthStep;
@@ -194,11 +197,11 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
                         end
                         if app.abortSignal
+                            % plot flat line
                             plot(app.AquireAxes,linspace(0, 3000, 3000)',zeros(3000, 1),'r-');
                             app.abortSignal = false;
                         else
                             % calculate WMRS
-                            %error here sometime on wmrs abort
                             v1 = calculateWMRspec(spectrums, 785);
                             plot(app.AquireAxes, w, v1, 'r-');
                         end
