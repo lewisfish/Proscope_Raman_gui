@@ -59,6 +59,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         CalibrationDone = false % Flag set to true if calibration has be carried out.
         WMRS = false % Flag set to true if WRMS mode is active.
         steps =5% number of spectra to take for WRMS mode.
+        abortSignal = false % abort acquistion
     end
     properties (Access = public)
         time = 0 % start time. Must be public as passed to outside function.
@@ -187,12 +188,20 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                             
                             app.SpectraAcquired = app.SpectraAcquired + 1;
                             app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
+                            if app.abortSignal
+                                break
+                            end
                         end
-                        % calculate WMRS
-                        v1 = calculateWMRspec(spectrums, 785);
-                        plot(app.AquireAxes, w, v1, 'r-');
+                        if app.abortSignal
+                            plot(app.AquireAxes,linspace(0, 3000, 3000)',zeros(3000, 1),'r-');
+                            app.abortSignal = false;
+                        else
+                            % calculate WMRS
+                            v1 = calculateWMRspec(spectrums, 785);
+                            plot(app.AquireAxes, w, v1, 'r-');
+                        end
                     else
-                        single spectra mode
+%                         single spectra mode
                         [w, s] = app.spectrometerHandle.AquireSpectra();
                         if app.spectrometerHandle.ReadMode == 4
 %                             s = rand(1024*256,1);
@@ -348,6 +357,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
         % Button pushed function: AbortButton
         function abortButtonPushed(app, event)
+            app.abortSignal = true;
             app.spectrometerHandle.Abort();
             uialert(app.RamanModuleUIFigure, 'Acquisition aborted!', 'Warning','Icon','warning');
             app.AcquireButton.Enable = true;
