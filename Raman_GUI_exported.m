@@ -181,6 +181,9 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                             % write current to laser
                             app.LaserHandle.writeHeaterCurrent();
                             % get new spectra
+                            if app.abortSignal
+                                break
+                            end
                             [w, s] = app.spectrometerHandle.AquireSpectra();
                             spectrums = [spectrums s];
                             %increment wavelength
@@ -188,34 +191,22 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                             
                             app.SpectraAcquired = app.SpectraAcquired + 1;
                             app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
-                            if app.abortSignal
-                                break
-                            end
+
                         end
                         if app.abortSignal
                             plot(app.AquireAxes,linspace(0, 3000, 3000)',zeros(3000, 1),'r-');
                             app.abortSignal = false;
                         else
                             % calculate WMRS
+                            %error here sometime on wmrs abort
                             v1 = calculateWMRspec(spectrums, 785);
                             plot(app.AquireAxes, w, v1, 'r-');
                         end
                     else
-%                         single spectra mode
+%                       single spectra mode
                         [w, s] = app.spectrometerHandle.AquireSpectra();
-                        if app.spectrometerHandle.ReadMode == 4
-%                             s = rand(1024*256,1);
-                            app.AquireAxes.XLim = [0,app.spectrometerHandle.XPixels];
-                            app.AquireAxes.YLim = [0,app.spectrometerHandle.YPixels];
-                            app.AquireAxes.XLabel.String = "";
-                            app.AquireAxes.YLabel.String = "";
-
-                            I=flip(transpose(reshape(s, app.spectrometerHandle.XPixels, app.spectrometerHandle.YPixels)),1);
-                            imagesc(app.AquireAxes, I);
-                        else
-                            saveData(app, w, s, app.SpectraSaveDir);
-                            plot(app.AquireAxes, w, s, 'r-');
-                        end
+                        saveData(app, w, s, app.SpectraSaveDir);
+                        plot(app.AquireAxes, w, s, 'r-');
                         
                         app.SpectraAcquired = app.SpectraAcquired + 1;
                         app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
