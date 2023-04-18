@@ -282,6 +282,11 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Value changed function: PatientIDEditField
         function PatientIDEditFieldValueChanged(app, event)
             value = app.PatientIDEditField.Value;
+            value_length = ceil(log10(abs(double(fix(value)))+1));
+            if value_length ~= 7
+                uialert(app.RamanModuleUIFigure, "PatientID must be 7 digits long!","User Error");
+                return
+            end
             strs = [string(value), app.dateTime];
             app.PatientID = join(strs, "_");
         end
@@ -299,7 +304,6 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.WMRSButton.Visible = "on";
             app.SingleRamanButton.Visible = "off";
             title(app.AquireAxes, 'Raman Spectra');
-
         end
 
         % Button pushed function: ClinicalModeButton
