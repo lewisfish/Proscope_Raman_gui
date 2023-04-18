@@ -5,8 +5,8 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         RamanModuleUIFigure            matlab.ui.Figure
         TabGroup                       matlab.ui.container.TabGroup
         CalibrationTab                 matlab.ui.container.Tab
-        PatientIDEditField_2Label      matlab.ui.control.Label
-        PatientIDEditField             matlab.ui.control.EditField
+        PatientIDEditField             matlab.ui.control.NumericEditField
+        PatientIDEditFieldLabel        matlab.ui.control.Label
         CalibrateButton                matlab.ui.control.Button
         SetSavePathButton              matlab.ui.control.Button
         CalibrationAxes                matlab.ui.control.UIAxes
@@ -458,18 +458,22 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.CalibrateButton.Position = [797 208 200 100];
             app.CalibrateButton.Text = 'Calibrate';
 
+            % Create PatientIDEditFieldLabel
+            app.PatientIDEditFieldLabel = uilabel(app.CalibrationTab);
+            app.PatientIDEditFieldLabel.HorizontalAlignment = 'right';
+            app.PatientIDEditFieldLabel.FontSize = 18;
+            app.PatientIDEditFieldLabel.Position = [796 482 80 22];
+            app.PatientIDEditFieldLabel.Text = 'PatientID';
+
             % Create PatientIDEditField
-            app.PatientIDEditField = uieditfield(app.CalibrationTab, 'text');
+            app.PatientIDEditField = uieditfield(app.CalibrationTab, 'numeric');
+            app.PatientIDEditField.Limits = [0 9999999];
+            app.PatientIDEditField.RoundFractionalValues = 'on';
+            app.PatientIDEditField.ValueDisplayFormat = '%.0f';
             app.PatientIDEditField.ValueChangedFcn = createCallbackFcn(app, @PatientIDEditFieldValueChanged, true);
             app.PatientIDEditField.FontSize = 18;
-            app.PatientIDEditField.Position = [878 493 113 33];
-
-            % Create PatientIDEditField_2Label
-            app.PatientIDEditField_2Label = uilabel(app.CalibrationTab);
-            app.PatientIDEditField_2Label.HorizontalAlignment = 'right';
-            app.PatientIDEditField_2Label.FontSize = 18;
-            app.PatientIDEditField_2Label.Position = [796 493 79 33];
-            app.PatientIDEditField_2Label.Text = 'PatientID';
+            app.PatientIDEditField.Position = [883 477 113 33];
+            app.PatientIDEditField.Value = 1000000;
 
             % Create MainTab
             app.MainTab = uitab(app.TabGroup);
