@@ -283,7 +283,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function PatientIDEditFieldValueChanged(app, event)
             value = app.PatientIDEditField.Value;
             value_length = ceil(log10(abs(double(fix(value)))+1));
-            if value_length ~= 7
+            if value_length ~= 6
                 uialert(app.RamanModuleUIFigure, "PatientID must be 7 digits long!","User Error");
                 return
             end
@@ -471,13 +471,12 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
             % Create PatientIDEditField
             app.PatientIDEditField = uieditfield(app.CalibrationTab, 'numeric');
-            app.PatientIDEditField.Limits = [0 9999999];
+            app.PatientIDEditField.Limits = [0 999999];
             app.PatientIDEditField.RoundFractionalValues = 'on';
             app.PatientIDEditField.ValueDisplayFormat = '%.0f';
             app.PatientIDEditField.ValueChangedFcn = createCallbackFcn(app, @PatientIDEditFieldValueChanged, true);
             app.PatientIDEditField.FontSize = 18;
             app.PatientIDEditField.Position = [883 477 113 33];
-            app.PatientIDEditField.Value = 1000000;
 
             % Create MainTab
             app.MainTab = uitab(app.TabGroup);
