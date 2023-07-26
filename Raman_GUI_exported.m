@@ -414,7 +414,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function RamanModuleUIFigureKeyPress(app, event)
             key = event.Key;
             switch key
-                case 'a' % aquire
+                case 'space' % aquire
                     app.AcquireButtonPushed();
                 case 's' %stop
                     app.abortButtonPushed();
