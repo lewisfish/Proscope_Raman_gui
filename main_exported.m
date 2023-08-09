@@ -1,42 +1,35 @@
-classdef Raman_GUI_exported < matlab.apps.AppBase
+classdef main_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        RamanModuleUIFigure            matlab.ui.Figure
-        TabGroup                       matlab.ui.container.TabGroup
-        CalibrationTab                 matlab.ui.container.Tab
-        GridLayout4                    matlab.ui.container.GridLayout
-        PanelCalibration               matlab.ui.container.Panel
-        GridLayout5                    matlab.ui.container.GridLayout
-        PatientIDEditFieldLabel        matlab.ui.control.Label
-        PatientIDEditField             matlab.ui.control.NumericEditField
-        SetSavePathButton              matlab.ui.control.Button
-        CalibrateButton                matlab.ui.control.Button
-        CalibrationAxes                matlab.ui.control.UIAxes
-        MainTab                        matlab.ui.container.Tab
+        RamanControlUIFigure           matlab.ui.Figure
         GridLayout                     matlab.ui.container.GridLayout
         PanelDisplay                   matlab.ui.container.Panel
-        GridLayout1                    matlab.ui.container.GridLayout
+        GridLayout4                    matlab.ui.container.GridLayout
         TimeTakenEditField             matlab.ui.control.EditField
         TimeTakenEditFieldLabel        matlab.ui.control.Label
         SpectraAcquiredEditField       matlab.ui.control.NumericEditField
         SpectraAcquiredEditFieldLabel  matlab.ui.control.Label
         PanelEngineering               matlab.ui.container.Panel
         GridLayout2                    matlab.ui.container.GridLayout
-        CCDTempEditFieldLabel          matlab.ui.control.Label
-        CCDTempEditField               matlab.ui.control.NumericEditField
-        SlitWidthEditFieldLabel        matlab.ui.control.Label
-        SlitWidthEditField             matlab.ui.control.NumericEditField
         MaxRamanShiftEditField         matlab.ui.control.NumericEditField
         MaxRamanShiftEditFieldLabel    matlab.ui.control.Label
         MinRamanShiftEditField         matlab.ui.control.NumericEditField
         MinRamanShiftEditFieldLabel    matlab.ui.control.Label
+        SlitWidthEditField             matlab.ui.control.NumericEditField
+        SlitWidthEditFieldLabel        matlab.ui.control.Label
+        CCDTempEditField               matlab.ui.control.NumericEditField
+        CCDTempEditFieldLabel          matlab.ui.control.Label
         PanelMain                      matlab.ui.container.Panel
         GridLayout3                    matlab.ui.container.GridLayout
-        SingleRamanButton              matlab.ui.control.Button
         ClinicalModeButton             matlab.ui.control.Button
+        SingleRamanButton              matlab.ui.control.Button
+        AbortButton                    matlab.ui.control.Button
+        AcquireButton                  matlab.ui.control.Button
+        ExitButton                     matlab.ui.control.Button
+        WRMSButton                     matlab.ui.control.Button
+        EngineeringModeButton          matlab.ui.control.Button
         SavePathButton                 matlab.ui.control.Button
-        LaserShutterButton             matlab.ui.control.Button
         TuningStepsEditField           matlab.ui.control.NumericEditField
         TuningStepsEditFieldLabel      matlab.ui.control.Label
         LaserPowerEditField            matlab.ui.control.NumericEditField
@@ -47,31 +40,27 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         MaxWavelengthEditFieldLabel    matlab.ui.control.Label
         CentralWavelengthEditField     matlab.ui.control.NumericEditField
         CentralWavelengthEditFieldLabel  matlab.ui.control.Label
-        EngineeringModeButton          matlab.ui.control.Button
-        ExitButton                     matlab.ui.control.Button
-        WMRSButton                     matlab.ui.control.Button
-        AbortButton                    matlab.ui.control.Button
-        AcquireButton                  matlab.ui.control.Button
         AquireAxes                     matlab.ui.control.UIAxes
     end
 
-    
     properties (Access = private)
-        CalibrationSaveDir % Calibration directory
+        CalibrationApp % handle for calibration window
         SpectraSaveDir % Patient data directory
         SpectraAcquired = 0 % Number of spectra acquired
-        PatientID % user defined Patient Id + current time/data
-        dateTime % store date time at startup
         tmr % Timer class
         LaserHandle % Laser class
         spectrometerHandle % spectrometer class
-        CalibrationDone = false % Flag set to true if calibration has be carried out.
         WMRS = false % Flag set to true if WRMS mode is active.
         steps =5% number of spectra to take for WRMS mode.
         abortSignal = false % abort acquistion
     end
     properties (Access = public)
-        time = 0 % start time. Must be public as passed to outside function.
+        % these Must be public as passed to outside function.
+        time = 0 % start time. 
+        PatientID % user defined Patient Id + current time/data
+        CalibrationDone = false % Flag set to true if calibration has be carried out.
+        CalibrationSaveDir % Calibration directory
+        dateTime % store date time at startup
     end
     methods (Access = private)
         
@@ -98,10 +87,10 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             free_Gbytes = free_bytes / (1024^3);
             if free_Gbytes < 10
                 if free_Gbytes < 5
-                    uialert(app.RamanModuleUIFigure, "Not Enough Memory on Hard Drive!","Memory Error");
+                    uialert(app.RamanControlUIFigure, "Not Enough Memory on Hard Drive!","Memory Error");
                     delete(app);
                 end
-                uialert(app.RamanModuleUIFigure, "Warning, less than 10Gb of disk space free!","Memory Warning",'Icon','warning');
+                uialert(app.RamanControlUIFigure, "Warning, less than 10Gb of disk space free!","Memory Warning",'Icon','warning');
             end
             
             % Set up timer
@@ -111,58 +100,19 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                             'StartDelay',0,... % In seconds.
                             'TasksToExecute',inf,...  % number of times to update
                             'ExecutionMode','fixedSpacing');
-            app.LaserHandle = Laser();
-            app.LaserHandle.enableLaserHeaterPower();
+%             app.LaserHandle = Laser();
+%             app.LaserHandle.enableLaserHeaterPower();
             
             %add spectrometer setup here
-            app.spectrometerHandle = Andor(-70.0, 1, 1.00, 0, 0, 1, 150, 785.0, app.RamanModuleUIFigure);
+%             app.spectrometerHandle = Andor(-70.0, 1, 1.00, 0, 0, 1, 150, 785.0, app.RamanControlUIFigure);
             
             %set up spectra viewer
             app.AquireAxes.XLim = [app.MinRamanShiftEditField.Value, app.MaxRamanShiftEditField.Value];
             
             % add time to patientID
             app.dateTime = string(datetime('now','TimeZone','local','Format','dd-MM-yyyy''T''HHmmss'));
-        end
-
-        % Button pushed function: SetSavePathButton
-        function SetSavePathButtonPushed(app, event)
-            if isempty(app.PatientID)
-                uialert(app.RamanModuleUIFigure, "PatientID not Entered!","Calibration Warning");
-            else
-                app.CalibrationSaveDir = uigetdir("", "Patient data Folder");
-                %stop app losing focus
-                app.RamanModuleUIFigure.Visible = 'off';
-                app.RamanModuleUIFigure.Visible = 'on';
-                app.CalibrateButton.Visible = "on";
-            end
-        end
-
-        % Button pushed function: CalibrateButton
-        function CalibrateButtonPushed(app, event)
-            if app.spectrometerHandle.CCDCooled == 1
-                app.CalibrationDone = true;
-                %integration time is 1s, rest is standard
-                expTime = app.spectrometerHandle.ExposureTime;
-                app.spectrometerHandle.setExposureTime(1.0);
-                [w, s] = app.spectrometerHandle.AquireSpectra();
-                saveData(app, w, s, app.CalibrationSaveDir, 'calibration');
-                plot(app.CalibrationAxes, w, s, 'r-');
-                app.spectrometerHandle.setExposureTime(expTime);
-            else
-                uialert(app.RamanModuleUIFigure, "CCD not fully cooled!","Calibration Warning","Icon","warning");
-            end
-        end
-
-        % Callback function: ExitButton, RamanModuleUIFigure
-        function UIFigureCloseRequest(app, event)
-            answer = questdlg("Do you want to shutdown the software?");
-            if answer == "Yes"
-                app.spectrometerHandle.ShutDownSafe(app.RamanModuleUIFigure);
-                app.LaserHandle.switchOff();
-                stop(app.tmr);
-                delete(app.tmr);
-                delete(app);
-            end       
+            
+            app.CalibrationApp = calibration(app);
         end
 
         % Button pushed function: AcquireButton
@@ -176,73 +126,95 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                     end
                     if app.WMRS
                         %WRMS mode
-                        wavelengthStep = (app.spectrometerHandle.maxWavelength - app.spectrometerHandle.minWavelength) / (app.steps-1); % nm
-                        wavelength = app.spectrometerHandle.minWavelength;
-                        spectrums = [];
-                        for i=1:app.steps-1
-                            if app.spectrometerHandle.abortSignal == true
-                                break;
-                            end
-                            % convert wavelength to current
-                            current = app.spectrometerHandle.wavelength_LUT(wavelength);
-                            %set current
-                            app.LaserHandle.setHeaterCurrent(current);
-                            % write current to laser
-                            app.LaserHandle.writeHeaterCurrent();
-                            if app.abortSignal
-                                break
-                            end
-                            % get new spectra
-                            [w, s] = app.spectrometerHandle.AquireSpectra();
-                            spectrums = [spectrums s];
-                            %increment wavelength
-                            wavelength = wavelength + wavelengthStep;
-                            
-                            app.SpectraAcquired = app.SpectraAcquired + 1;
-                            app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
-
-                        end
-                        if app.abortSignal
+%                         wavelengthStep = (app.spectrometerHandle.maxWavelength - app.spectrometerHandle.minWavelength) / (app.steps-1); % nm
+%                         wavelength = app.spectrometerHandle.minWavelength;
+%                         spectrums = [];
+%                         for i=1:app.steps-1
+%                             if app.spectrometerHandle.abortSignal == true
+%                                 break;
+%                             end
+%                             % convert wavelength to current
+%                             current = app.spectrometerHandle.wavelength_LUT(wavelength);
+%                             %set current
+%                             app.LaserHandle.setHeaterCurrent(current);
+%                             % write current to laser
+%                             app.LaserHandle.writeHeaterCurrent();
+%                             if app.abortSignal
+%                                 break
+%                             end
+%                             % get new spectra
+%                             [w, s] = app.spectrometerHandle.AquireSpectra();
+%                             spectrums = [spectrums s];
+%                             %increment wavelength
+%                             wavelength = wavelength + wavelengthStep;
+%                             
+%                             app.SpectraAcquired = app.SpectraAcquired + 1;
+%                             app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
+% 
+%                         end
+%                         if app.abortSignal
                             %plot flat line
                             plot(app.AquireAxes,linspace(0, 3000, 3000)',zeros(3000, 1),'r-');
-                            app.abortSignal = false;
-                        else
+%                             app.abortSignal = false;
+%                         else
                             % calculate WMRS
-                            v1 = calculateWMRspec(spectrums, 785);
-                            plot(app.AquireAxes, w, v1, 'r-');
-                        end
+%                             v1 = calculateWMRspec(spectrums, 785);
+%                             plot(app.AquireAxes, w, v1, 'r-');
+%                         end
                     else
 %                       single spectra mode
-                        [w, s] = app.spectrometerHandle.AquireSpectra();
-                        saveData(app, w, s, app.SpectraSaveDir);
-                        plot(app.AquireAxes, w, s, 'r-');
-                        
+%                         [w, s] = app.spectrometerHandle.AquireSpectra();
+%                         saveData(app, w, s, app.SpectraSaveDir);
+%                         plot(app.AquireAxes, w, s, 'r-');
+                          plot(app.AquireAxes,linspace(0, 3000, 3000)',zeros(3000, 1),'r-');
+
                         app.SpectraAcquired = app.SpectraAcquired + 1;
                         app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
                     end
                 else
-                    uialert(app.RamanModuleUIFigure, "Save path for spectra not set!", "Path not set")
+                    uialert(app.RamanControlUIFigure, "Save path for spectra not set!", "Path not set")
                 end
             else
-                uialert(app.RamanModuleUIFigure, "Calibration Data not taken!","Calibration Warning");
+                uialert(app.RamanControlUIFigure, "Calibration Data not taken!","Calibration Warning");
             end
             app.AcquireButton.Enable = true;
         end
 
-        % Button pushed function: WMRSButton
-        function WMRSButtonPushed(app, event)
-            app.WMRSButton.Visible = "off";
+        % Button pushed function: AbortButton
+        function AbortButtonPushed(app, event)
+            app.abortSignal = true;
+            app.spectrometerHandle.Abort();
+            uialert(app.RamanControlUIFigure, 'Acquisition aborted!', 'Warning','Icon','warning');
+            app.AcquireButton.Enable = true;
+        end
+
+        % Button pushed function: WRMSButton
+        function WRMSButtonPushed(app, event)
+            app.WRMSButton.Visible = "off";
             app.WMRS = true;
             app.SingleRamanButton.Visible = "on";
             title(app.AquireAxes, 'WMR Spectra');
+        end
+
+        % Button pushed function: SingleRamanButton
+        function SingleRamanButtonPushed(app, event)
+            if app.WMRS == true
+                app.WMRS = false;
+                % reset wavelength of laser back to default.
+%                 wavelength = app.spectrometerHandle.CentralWavelength;
+%                 current = app.spectrometerHandle.wavelength_LUT(wavelength);
+%                 app.LaserHandle.setHeaterCurrent(current);
+%                 app.LaserHandle.writeHeaterCurrent();
+            end
+            app.WRMSButton.Visible = "on";
+            app.SingleRamanButton.Visible = "off";
+            title(app.AquireAxes, 'Raman Spectra');
         end
 
         % Button pushed function: EngineeringModeButton
         function EngineeringModeButtonPushed(app, event)
             answer = inputdlg("Enter Password");
             if answer == "proscope2023"
-                app.LaserShutterButton.Visible = 'on';
-
                 app.CentralWavelengthEditField.Visible = 'on';
                 app.CentralWavelengthEditFieldLabel.Visible = 'on';
     
@@ -273,48 +245,12 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
                 app.EngineeringModeButton.Visible = "off";
                 app.ClinicalModeButton.Visible = "on";
             else
-                uialert(app.RamanModuleUIFigure, "Wrong Password!","Security Error");
+                uialert(app.RamanControlUIFigure, "Wrong Password!","Security Error");
             end 
-        end
-
-        % Button pushed function: SavePathButton
-        function SavePathButtonPushed(app, event)
-            app.SpectraSaveDir = uigetdir("", "Patient Data Folder");
-            %stop app losing focus
-            app.RamanModuleUIFigure.Visible = 'off';
-            app.RamanModuleUIFigure.Visible = 'on';
-        end
-
-        % Value changed function: PatientIDEditField
-        function PatientIDEditFieldValueChanged(app, event)
-            value = app.PatientIDEditField.Value;
-            value_length = ceil(log10(abs(double(fix(value)))+1));
-            if value_length ~= 6
-                uialert(app.RamanModuleUIFigure, "PatientID must be 6 digits long!","User Error");
-                return
-            end
-            strs = [string(value), app.dateTime];
-            app.PatientID = join(strs, "_");
-        end
-
-        % Button pushed function: SingleRamanButton
-        function SingleRamanButtonPushed(app, event)
-            if app.WMRS == true
-                app.WMRS = false;
-                % reset wavelength of laser back to default.
-                wavelength = app.spectrometerHandle.CentralWavelength;
-                current = app.spectrometerHandle.wavelength_LUT(wavelength);
-                app.LaserHandle.setHeaterCurrent(current);
-                app.LaserHandle.writeHeaterCurrent();
-            end
-            app.WMRSButton.Visible = "on";
-            app.SingleRamanButton.Visible = "off";
-            title(app.AquireAxes, 'Raman Spectra');
         end
 
         % Button pushed function: ClinicalModeButton
         function ClinicalModeButtonPushed(app, event)
-            app.LaserShutterButton.Visible = 'off';
 
             app.CentralWavelengthEditField.Visible = 'off';
             app.CentralWavelengthEditFieldLabel.Visible = 'off';
@@ -347,6 +283,50 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.ClinicalModeButton.Visible = "off";
         end
 
+        % Button pushed function: SavePathButton
+        function SavePathButtonPushed(app, event)
+            app.SpectraSaveDir = uigetdir("", "Patient Data Folder");
+            %stop app losing focus
+            app.RamanControlUIFigure.Visible = 'off';
+            app.RamanControlUIFigure.Visible = 'on';
+        end
+
+        % Callback function: ExitButton, RamanControlUIFigure
+        function UIFigureCloseRequest(app, event)
+            answer = questdlg("Do you want to shutdown the software?");
+            if answer == "Yes"
+%                 app.spectrometerHandle.ShutDownSafe(app.RamanControlUIFigure);
+%                 app.LaserHandle.switchOff();
+                stop(app.tmr);
+                delete(app.tmr);
+                delete(app.CalibrationApp);
+                delete(app);
+            end      
+        end
+
+        % Size changed function: RamanControlUIFigure
+        function RamanControlUIFigureSizeChanged(app, event)
+            position = app.RamanControlUIFigure.Position;
+%             position = app.MainTab.Position;
+            if position(3) < 1024 || position(4) < 768
+                uialert(app.RamanControlUIFigure, 'Too small a window!', 'Warning','Icon','warning');
+                app.RamanControlUIFigure.Position = [position(1),position(2),1024,768];
+            else
+                app.RamanControlUIFigure.Position = [2,1,position(3),position(4)];
+            end
+        end
+
+        % Key press function: RamanControlUIFigure
+        function RamanControlUIFigureKeyPress(app, event)
+            key = event.Key;
+            switch key
+                case 'space' % acquire
+                    app.AcquireButtonPushed();
+                case 's' %stop
+                    app.abortButtonPushed();
+            end
+        end
+
         % Value changed function: MinRamanShiftEditField
         function MinRamanShiftEditFieldValueChanged(app, event)
             value = app.MinRamanShiftEditField.Value;
@@ -359,30 +339,22 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.AquireAxes.XLim = [app.MinRamanShiftEditField.Value, value];
         end
 
-        % Button pushed function: AbortButton
-        function abortButtonPushed(app, event)
-            app.abortSignal = true;
-            app.spectrometerHandle.Abort();
-            uialert(app.RamanModuleUIFigure, 'Acquisition aborted!', 'Warning','Icon','warning');
-            app.AcquireButton.Enable = true;
+        % Value changed function: CCDTempEditField
+        function CCDTempEditFieldValueChanged(app, event)
+            value = app.CCDTempEditField.Value;
+            app.spectrometerHandle.SetCCDTemp(value);
         end
 
         % Value changed function: SlitWidthEditField
-        function changeSlitWidth(app, event)
+        function SlitWidthEditFieldValueChanged(app, event)
             value = app.SlitWidthEditField.Value;
             app.spectrometerHandle.setSlitWidth(value);
         end
 
         % Value changed function: CentralWavelengthEditField
-        function changeCentralWavelength(app, event)
+        function CentralWavelengthEditFieldValueChanged(app, event)
             value = app.CentralWavelengthEditField.Value;
             app.spectrometerHandle.setCentralWavelength(value);
-        end
-
-        % Value changed function: CCDTempEditField
-        function CCDTempEditFieldValueChanged(app, event)
-            value = app.CCDTempEditField.Value;
-            app.spectrometerHandle.SetCCDTemp(value);
         end
 
         % Value changed function: MaxWavelengthEditField
@@ -397,12 +369,6 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.spectrometerHandle.setMinWavelength(value);
         end
 
-        % Value changed function: TuningStepsEditField
-        function TuningStepsEditFieldValueChanged(app, event)
-            value = app.TuningStepsEditField.Value;
-            app.steps = value;
-        end
-
         % Value changed function: LaserPowerEditField
         function LaserPowerEditFieldValueChanged(app, event)
             value = app.LaserPowerEditField.Value;
@@ -410,27 +376,10 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.LaserHandle.setCurrentViaPower(value);
         end
 
-        % Key press function: RamanModuleUIFigure
-        function RamanModuleUIFigureKeyPress(app, event)
-            key = event.Key;
-            switch key
-                case 'space' % aquire
-                    app.AcquireButtonPushed();
-                case 's' %stop
-                    app.abortButtonPushed();
-            end
-        end
-
-        % Size changed function: RamanModuleUIFigure
-        function RamanModuleUIFigureSizeChanged(app, event)
-            position = app.RamanModuleUIFigure.Position;
-%             position = app.MainTab.Position;
-            if position(3) < 1024 || position(4) < 768
-                uialert(app.RamanModuleUIFigure, 'Too small a window!', 'Warning','Icon','warning');
-                app.RamanModuleUIFigure.Position = [position(1),position(2),1024,768];
-            else
-                app.TabGroup.Position = [2,1,position(3),position(4)];
-            end
+        % Value changed function: TuningStepsEditField
+        function TuningStepsEditFieldValueChanged(app, event)
+            value = app.TuningStepsEditField.Value;
+            app.steps = value;
         end
     end
 
@@ -440,99 +389,20 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         % Create UIFigure and components
         function createComponents(app)
 
-            % Create RamanModuleUIFigure and hide until all components are created
-            app.RamanModuleUIFigure = uifigure('Visible', 'off');
-            app.RamanModuleUIFigure.AutoResizeChildren = 'off';
-            app.RamanModuleUIFigure.Position = [100 100 1024 768];
-            app.RamanModuleUIFigure.Name = 'Raman Module';
-            app.RamanModuleUIFigure.Icon = 'logo.jpeg';
-            app.RamanModuleUIFigure.CloseRequestFcn = createCallbackFcn(app, @UIFigureCloseRequest, true);
-            app.RamanModuleUIFigure.SizeChangedFcn = createCallbackFcn(app, @RamanModuleUIFigureSizeChanged, true);
-            app.RamanModuleUIFigure.KeyPressFcn = createCallbackFcn(app, @RamanModuleUIFigureKeyPress, true);
-
-            % Create TabGroup
-            app.TabGroup = uitabgroup(app.RamanModuleUIFigure);
-            app.TabGroup.Position = [2 1 1024 768];
-
-            % Create CalibrationTab
-            app.CalibrationTab = uitab(app.TabGroup);
-            app.CalibrationTab.Title = 'Calibration';
-
-            % Create GridLayout4
-            app.GridLayout4 = uigridlayout(app.CalibrationTab);
-            app.GridLayout4.ColumnWidth = {'1x', '0.75x'};
-            app.GridLayout4.RowHeight = {'1x'};
-
-            % Create CalibrationAxes
-            app.CalibrationAxes = uiaxes(app.GridLayout4);
-            title(app.CalibrationAxes, 'Calibration Spectrum')
-            xlabel(app.CalibrationAxes, 'Wavenumber/cm^{-1}')
-            ylabel(app.CalibrationAxes, 'Raman Intensity/arb.')
-            zlabel(app.CalibrationAxes, 'Z')
-            app.CalibrationAxes.FontSize = 18;
-            app.CalibrationAxes.Layout.Row = 1;
-            app.CalibrationAxes.Layout.Column = 1;
-
-            % Create PanelCalibration
-            app.PanelCalibration = uipanel(app.GridLayout4);
-            app.PanelCalibration.BorderType = 'none';
-            app.PanelCalibration.Layout.Row = 1;
-            app.PanelCalibration.Layout.Column = 2;
-
-            % Create GridLayout5
-            app.GridLayout5 = uigridlayout(app.PanelCalibration);
-            app.GridLayout5.ColumnWidth = {'1x', '1x', '1x', '1x'};
-            app.GridLayout5.RowHeight = {'1x', '1x', '1x', '1x', '1x', '1x', '1x'};
-            app.GridLayout5.ColumnSpacing = 5;
-            app.GridLayout5.RowSpacing = 5;
-            app.GridLayout5.Padding = [1 1 1 1];
-
-            % Create CalibrateButton
-            app.CalibrateButton = uibutton(app.GridLayout5, 'push');
-            app.CalibrateButton.ButtonPushedFcn = createCallbackFcn(app, @CalibrateButtonPushed, true);
-            app.CalibrateButton.FontSize = 18;
-            app.CalibrateButton.Visible = 'off';
-            app.CalibrateButton.Layout.Row = 5;
-            app.CalibrateButton.Layout.Column = [2 3];
-            app.CalibrateButton.Text = 'Calibrate';
-
-            % Create SetSavePathButton
-            app.SetSavePathButton = uibutton(app.GridLayout5, 'push');
-            app.SetSavePathButton.ButtonPushedFcn = createCallbackFcn(app, @SetSavePathButtonPushed, true);
-            app.SetSavePathButton.FontSize = 18;
-            app.SetSavePathButton.Layout.Row = 4;
-            app.SetSavePathButton.Layout.Column = [2 3];
-            app.SetSavePathButton.Text = 'Set Save Path';
-
-            % Create PatientIDEditField
-            app.PatientIDEditField = uieditfield(app.GridLayout5, 'numeric');
-            app.PatientIDEditField.Limits = [0 999999];
-            app.PatientIDEditField.RoundFractionalValues = 'on';
-            app.PatientIDEditField.ValueDisplayFormat = '%.0f';
-            app.PatientIDEditField.ValueChangedFcn = createCallbackFcn(app, @PatientIDEditFieldValueChanged, true);
-            app.PatientIDEditField.HorizontalAlignment = 'center';
-            app.PatientIDEditField.FontSize = 18;
-            app.PatientIDEditField.Layout.Row = 3;
-            app.PatientIDEditField.Layout.Column = 3;
-
-            % Create PatientIDEditFieldLabel
-            app.PatientIDEditFieldLabel = uilabel(app.GridLayout5);
-            app.PatientIDEditFieldLabel.HorizontalAlignment = 'right';
-            app.PatientIDEditFieldLabel.FontSize = 18;
-            app.PatientIDEditFieldLabel.Layout.Row = 3;
-            app.PatientIDEditFieldLabel.Layout.Column = 2;
-            app.PatientIDEditFieldLabel.Text = 'PatientID';
-
-            % Create MainTab
-            app.MainTab = uitab(app.TabGroup);
-            app.MainTab.Title = 'Main';
+            % Create RamanControlUIFigure and hide until all components are created
+            app.RamanControlUIFigure = uifigure('Visible', 'off');
+            app.RamanControlUIFigure.AutoResizeChildren = 'off';
+            app.RamanControlUIFigure.Position = [100 100 1024 768];
+            app.RamanControlUIFigure.Name = 'Raman Control';
+            app.RamanControlUIFigure.Icon = 'logo.jpeg';
+            app.RamanControlUIFigure.CloseRequestFcn = createCallbackFcn(app, @UIFigureCloseRequest, true);
+            app.RamanControlUIFigure.SizeChangedFcn = createCallbackFcn(app, @RamanControlUIFigureSizeChanged, true);
+            app.RamanControlUIFigure.KeyPressFcn = createCallbackFcn(app, @RamanControlUIFigureKeyPress, true);
 
             % Create GridLayout
-            app.GridLayout = uigridlayout(app.MainTab);
+            app.GridLayout = uigridlayout(app.RamanControlUIFigure);
             app.GridLayout.ColumnWidth = {'1x', '0.75x'};
             app.GridLayout.RowHeight = {'0.2x', '1x'};
-            app.GridLayout.ColumnSpacing = 5;
-            app.GridLayout.RowSpacing = 5;
 
             % Create AquireAxes
             app.AquireAxes = uiaxes(app.GridLayout);
@@ -546,7 +416,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
             % Create PanelMain
             app.PanelMain = uipanel(app.GridLayout);
-            app.PanelMain.BorderType = 'none';
+            app.PanelMain.AutoResizeChildren = 'off';
             app.PanelMain.Layout.Row = 2;
             app.PanelMain.Layout.Column = 2;
 
@@ -554,51 +424,6 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.GridLayout3 = uigridlayout(app.PanelMain);
             app.GridLayout3.ColumnWidth = {'1x', '1x', '1x', '1x'};
             app.GridLayout3.RowHeight = {'1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x'};
-
-            % Create AcquireButton
-            app.AcquireButton = uibutton(app.GridLayout3, 'push');
-            app.AcquireButton.ButtonPushedFcn = createCallbackFcn(app, @AcquireButtonPushed, true);
-            app.AcquireButton.BackgroundColor = [0.0745 0.6235 1];
-            app.AcquireButton.FontSize = 18;
-            app.AcquireButton.Layout.Row = 7;
-            app.AcquireButton.Layout.Column = [1 2];
-            app.AcquireButton.Text = 'Acquire';
-
-            % Create AbortButton
-            app.AbortButton = uibutton(app.GridLayout3, 'push');
-            app.AbortButton.ButtonPushedFcn = createCallbackFcn(app, @abortButtonPushed, true);
-            app.AbortButton.BackgroundColor = [0.851 0.3255 0.098];
-            app.AbortButton.FontSize = 18;
-            app.AbortButton.Layout.Row = 7;
-            app.AbortButton.Layout.Column = [3 4];
-            app.AbortButton.Text = 'Abort';
-
-            % Create WMRSButton
-            app.WMRSButton = uibutton(app.GridLayout3, 'push');
-            app.WMRSButton.ButtonPushedFcn = createCallbackFcn(app, @WMRSButtonPushed, true);
-            app.WMRSButton.BackgroundColor = [0 1 0];
-            app.WMRSButton.FontSize = 18;
-            app.WMRSButton.Layout.Row = 8;
-            app.WMRSButton.Layout.Column = [1 2];
-            app.WMRSButton.Text = 'WMRS';
-
-            % Create ExitButton
-            app.ExitButton = uibutton(app.GridLayout3, 'push');
-            app.ExitButton.ButtonPushedFcn = createCallbackFcn(app, @UIFigureCloseRequest, true);
-            app.ExitButton.BackgroundColor = [1 0.4118 0.1608];
-            app.ExitButton.FontSize = 18;
-            app.ExitButton.Layout.Row = 8;
-            app.ExitButton.Layout.Column = [3 4];
-            app.ExitButton.Text = 'Exit';
-
-            % Create EngineeringModeButton
-            app.EngineeringModeButton = uibutton(app.GridLayout3, 'push');
-            app.EngineeringModeButton.ButtonPushedFcn = createCallbackFcn(app, @EngineeringModeButtonPushed, true);
-            app.EngineeringModeButton.BackgroundColor = [0.9294 0.6941 0.1255];
-            app.EngineeringModeButton.FontSize = 18;
-            app.EngineeringModeButton.Layout.Row = 9;
-            app.EngineeringModeButton.Layout.Column = [3 4];
-            app.EngineeringModeButton.Text = 'Engineering Mode';
 
             % Create CentralWavelengthEditFieldLabel
             app.CentralWavelengthEditFieldLabel = uilabel(app.GridLayout3);
@@ -613,7 +438,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.CentralWavelengthEditField = uieditfield(app.GridLayout3, 'numeric');
             app.CentralWavelengthEditField.Limits = [0 Inf];
             app.CentralWavelengthEditField.ValueDisplayFormat = '%.2f nm';
-            app.CentralWavelengthEditField.ValueChangedFcn = createCallbackFcn(app, @changeCentralWavelength, true);
+            app.CentralWavelengthEditField.ValueChangedFcn = createCallbackFcn(app, @CentralWavelengthEditFieldValueChanged, true);
             app.CentralWavelengthEditField.FontSize = 18;
             app.CentralWavelengthEditField.Visible = 'off';
             app.CentralWavelengthEditField.Layout.Row = 1;
@@ -702,14 +527,6 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.TuningStepsEditField.Layout.Column = 4;
             app.TuningStepsEditField.Value = 5;
 
-            % Create LaserShutterButton
-            app.LaserShutterButton = uibutton(app.GridLayout3, 'push');
-            app.LaserShutterButton.FontSize = 18;
-            app.LaserShutterButton.Visible = 'off';
-            app.LaserShutterButton.Layout.Row = 9;
-            app.LaserShutterButton.Layout.Column = [1 2];
-            app.LaserShutterButton.Text = 'Laser Shutter';
-
             % Create SavePathButton
             app.SavePathButton = uibutton(app.GridLayout3, 'push');
             app.SavePathButton.ButtonPushedFcn = createCallbackFcn(app, @SavePathButtonPushed, true);
@@ -718,15 +535,50 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.SavePathButton.Layout.Column = [3 4];
             app.SavePathButton.Text = 'Save Path';
 
-            % Create ClinicalModeButton
-            app.ClinicalModeButton = uibutton(app.GridLayout3, 'push');
-            app.ClinicalModeButton.ButtonPushedFcn = createCallbackFcn(app, @ClinicalModeButtonPushed, true);
-            app.ClinicalModeButton.BackgroundColor = [0.0588 1 1];
-            app.ClinicalModeButton.FontSize = 18;
-            app.ClinicalModeButton.Visible = 'off';
-            app.ClinicalModeButton.Layout.Row = 9;
-            app.ClinicalModeButton.Layout.Column = [3 4];
-            app.ClinicalModeButton.Text = 'Clinical Mode';
+            % Create EngineeringModeButton
+            app.EngineeringModeButton = uibutton(app.GridLayout3, 'push');
+            app.EngineeringModeButton.ButtonPushedFcn = createCallbackFcn(app, @EngineeringModeButtonPushed, true);
+            app.EngineeringModeButton.BackgroundColor = [0.9294 0.6902 0.1294];
+            app.EngineeringModeButton.FontSize = 18;
+            app.EngineeringModeButton.Layout.Row = 9;
+            app.EngineeringModeButton.Layout.Column = [3 4];
+            app.EngineeringModeButton.Text = 'Engineering Mode';
+
+            % Create WRMSButton
+            app.WRMSButton = uibutton(app.GridLayout3, 'push');
+            app.WRMSButton.ButtonPushedFcn = createCallbackFcn(app, @WRMSButtonPushed, true);
+            app.WRMSButton.BackgroundColor = [0 1 0];
+            app.WRMSButton.FontSize = 18;
+            app.WRMSButton.Layout.Row = 8;
+            app.WRMSButton.Layout.Column = [1 2];
+            app.WRMSButton.Text = 'WRMS';
+
+            % Create ExitButton
+            app.ExitButton = uibutton(app.GridLayout3, 'push');
+            app.ExitButton.ButtonPushedFcn = createCallbackFcn(app, @UIFigureCloseRequest, true);
+            app.ExitButton.BackgroundColor = [1 0.4118 0.1608];
+            app.ExitButton.FontSize = 18;
+            app.ExitButton.Layout.Row = 8;
+            app.ExitButton.Layout.Column = [3 4];
+            app.ExitButton.Text = 'Exit';
+
+            % Create AcquireButton
+            app.AcquireButton = uibutton(app.GridLayout3, 'push');
+            app.AcquireButton.ButtonPushedFcn = createCallbackFcn(app, @AcquireButtonPushed, true);
+            app.AcquireButton.BackgroundColor = [0.0706 0.6196 1];
+            app.AcquireButton.FontSize = 18;
+            app.AcquireButton.Layout.Row = 7;
+            app.AcquireButton.Layout.Column = [1 2];
+            app.AcquireButton.Text = 'Acquire';
+
+            % Create AbortButton
+            app.AbortButton = uibutton(app.GridLayout3, 'push');
+            app.AbortButton.ButtonPushedFcn = createCallbackFcn(app, @AbortButtonPushed, true);
+            app.AbortButton.BackgroundColor = [0.851 0.3294 0.102];
+            app.AbortButton.FontSize = 18;
+            app.AbortButton.Layout.Row = 7;
+            app.AbortButton.Layout.Column = [3 4];
+            app.AbortButton.Text = 'Abort';
 
             % Create SingleRamanButton
             app.SingleRamanButton = uibutton(app.GridLayout3, 'push');
@@ -738,16 +590,64 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.SingleRamanButton.Layout.Column = [1 2];
             app.SingleRamanButton.Text = 'Single Raman';
 
+            % Create ClinicalModeButton
+            app.ClinicalModeButton = uibutton(app.GridLayout3, 'push');
+            app.ClinicalModeButton.ButtonPushedFcn = createCallbackFcn(app, @ClinicalModeButtonPushed, true);
+            app.ClinicalModeButton.BackgroundColor = [0.0588 1 1];
+            app.ClinicalModeButton.FontSize = 18;
+            app.ClinicalModeButton.Visible = 'off';
+            app.ClinicalModeButton.Layout.Row = 9;
+            app.ClinicalModeButton.Layout.Column = [3 4];
+            app.ClinicalModeButton.Text = 'Clinical Mode';
+
             % Create PanelEngineering
             app.PanelEngineering = uipanel(app.GridLayout);
-            app.PanelEngineering.BorderType = 'none';
+            app.PanelEngineering.AutoResizeChildren = 'off';
             app.PanelEngineering.Layout.Row = 1;
             app.PanelEngineering.Layout.Column = 1;
-            app.PanelEngineering.FontSize = 18;
 
             % Create GridLayout2
             app.GridLayout2 = uigridlayout(app.PanelEngineering);
             app.GridLayout2.ColumnWidth = {'1x', '0.65x', '1x', '0.5x'};
+
+            % Create CCDTempEditFieldLabel
+            app.CCDTempEditFieldLabel = uilabel(app.GridLayout2);
+            app.CCDTempEditFieldLabel.HorizontalAlignment = 'right';
+            app.CCDTempEditFieldLabel.FontSize = 18;
+            app.CCDTempEditFieldLabel.Visible = 'off';
+            app.CCDTempEditFieldLabel.Layout.Row = 1;
+            app.CCDTempEditFieldLabel.Layout.Column = 1;
+            app.CCDTempEditFieldLabel.Text = 'CCD Temp';
+
+            % Create CCDTempEditField
+            app.CCDTempEditField = uieditfield(app.GridLayout2, 'numeric');
+            app.CCDTempEditField.ValueDisplayFormat = '%11.4g C';
+            app.CCDTempEditField.ValueChangedFcn = createCallbackFcn(app, @CCDTempEditFieldValueChanged, true);
+            app.CCDTempEditField.FontSize = 18;
+            app.CCDTempEditField.Visible = 'off';
+            app.CCDTempEditField.Layout.Row = 1;
+            app.CCDTempEditField.Layout.Column = 2;
+            app.CCDTempEditField.Value = -70;
+
+            % Create SlitWidthEditFieldLabel
+            app.SlitWidthEditFieldLabel = uilabel(app.GridLayout2);
+            app.SlitWidthEditFieldLabel.HorizontalAlignment = 'right';
+            app.SlitWidthEditFieldLabel.FontSize = 18;
+            app.SlitWidthEditFieldLabel.Visible = 'off';
+            app.SlitWidthEditFieldLabel.Layout.Row = 2;
+            app.SlitWidthEditFieldLabel.Layout.Column = 1;
+            app.SlitWidthEditFieldLabel.Text = 'Slit Width';
+
+            % Create SlitWidthEditField
+            app.SlitWidthEditField = uieditfield(app.GridLayout2, 'numeric');
+            app.SlitWidthEditField.Limits = [0 Inf];
+            app.SlitWidthEditField.ValueDisplayFormat = '%.2f um';
+            app.SlitWidthEditField.ValueChangedFcn = createCallbackFcn(app, @SlitWidthEditFieldValueChanged, true);
+            app.SlitWidthEditField.FontSize = 18;
+            app.SlitWidthEditField.Visible = 'off';
+            app.SlitWidthEditField.Layout.Row = 2;
+            app.SlitWidthEditField.Layout.Column = 2;
+            app.SlitWidthEditField.Value = 150;
 
             % Create MinRamanShiftEditFieldLabel
             app.MinRamanShiftEditFieldLabel = uilabel(app.GridLayout2);
@@ -760,6 +660,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
 
             % Create MinRamanShiftEditField
             app.MinRamanShiftEditField = uieditfield(app.GridLayout2, 'numeric');
+            app.MinRamanShiftEditField.Limits = [0 Inf];
             app.MinRamanShiftEditField.ValueDisplayFormat = '%11.4g nm';
             app.MinRamanShiftEditField.ValueChangedFcn = createCallbackFcn(app, @MinRamanShiftEditFieldValueChanged, true);
             app.MinRamanShiftEditField.FontSize = 18;
@@ -787,57 +688,18 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.MaxRamanShiftEditField.Layout.Column = 4;
             app.MaxRamanShiftEditField.Value = 3000;
 
-            % Create SlitWidthEditField
-            app.SlitWidthEditField = uieditfield(app.GridLayout2, 'numeric');
-            app.SlitWidthEditField.Limits = [0 Inf];
-            app.SlitWidthEditField.ValueDisplayFormat = '%.2f um';
-            app.SlitWidthEditField.ValueChangedFcn = createCallbackFcn(app, @changeSlitWidth, true);
-            app.SlitWidthEditField.FontSize = 18;
-            app.SlitWidthEditField.Visible = 'off';
-            app.SlitWidthEditField.Layout.Row = 2;
-            app.SlitWidthEditField.Layout.Column = 2;
-            app.SlitWidthEditField.Value = 150;
-
-            % Create SlitWidthEditFieldLabel
-            app.SlitWidthEditFieldLabel = uilabel(app.GridLayout2);
-            app.SlitWidthEditFieldLabel.HorizontalAlignment = 'right';
-            app.SlitWidthEditFieldLabel.FontSize = 18;
-            app.SlitWidthEditFieldLabel.Visible = 'off';
-            app.SlitWidthEditFieldLabel.Layout.Row = 2;
-            app.SlitWidthEditFieldLabel.Layout.Column = 1;
-            app.SlitWidthEditFieldLabel.Text = 'Slit Width';
-
-            % Create CCDTempEditField
-            app.CCDTempEditField = uieditfield(app.GridLayout2, 'numeric');
-            app.CCDTempEditField.ValueDisplayFormat = '%11.4g C';
-            app.CCDTempEditField.ValueChangedFcn = createCallbackFcn(app, @CCDTempEditFieldValueChanged, true);
-            app.CCDTempEditField.FontSize = 18;
-            app.CCDTempEditField.Visible = 'off';
-            app.CCDTempEditField.Layout.Row = 1;
-            app.CCDTempEditField.Layout.Column = 2;
-            app.CCDTempEditField.Value = -70;
-
-            % Create CCDTempEditFieldLabel
-            app.CCDTempEditFieldLabel = uilabel(app.GridLayout2);
-            app.CCDTempEditFieldLabel.HorizontalAlignment = 'right';
-            app.CCDTempEditFieldLabel.FontSize = 18;
-            app.CCDTempEditFieldLabel.Visible = 'off';
-            app.CCDTempEditFieldLabel.Layout.Row = 1;
-            app.CCDTempEditFieldLabel.Layout.Column = 1;
-            app.CCDTempEditFieldLabel.Text = 'CCD Temp';
-
             % Create PanelDisplay
             app.PanelDisplay = uipanel(app.GridLayout);
-            app.PanelDisplay.BorderType = 'none';
+            app.PanelDisplay.AutoResizeChildren = 'off';
             app.PanelDisplay.Layout.Row = 1;
             app.PanelDisplay.Layout.Column = 2;
 
-            % Create GridLayout1
-            app.GridLayout1 = uigridlayout(app.PanelDisplay);
-            app.GridLayout1.ColumnWidth = {'1x', '0.4x'};
+            % Create GridLayout4
+            app.GridLayout4 = uigridlayout(app.PanelDisplay);
+            app.GridLayout4.ColumnWidth = {'1x', '0.4x'};
 
             % Create SpectraAcquiredEditFieldLabel
-            app.SpectraAcquiredEditFieldLabel = uilabel(app.GridLayout1);
+            app.SpectraAcquiredEditFieldLabel = uilabel(app.GridLayout4);
             app.SpectraAcquiredEditFieldLabel.HorizontalAlignment = 'right';
             app.SpectraAcquiredEditFieldLabel.FontSize = 18;
             app.SpectraAcquiredEditFieldLabel.Layout.Row = 1;
@@ -845,14 +707,15 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.SpectraAcquiredEditFieldLabel.Text = 'Spectra Acquired';
 
             % Create SpectraAcquiredEditField
-            app.SpectraAcquiredEditField = uieditfield(app.GridLayout1, 'numeric');
+            app.SpectraAcquiredEditField = uieditfield(app.GridLayout4, 'numeric');
+            app.SpectraAcquiredEditField.Limits = [0 Inf];
             app.SpectraAcquiredEditField.HorizontalAlignment = 'center';
             app.SpectraAcquiredEditField.FontSize = 18;
             app.SpectraAcquiredEditField.Layout.Row = 1;
             app.SpectraAcquiredEditField.Layout.Column = 2;
 
             % Create TimeTakenEditFieldLabel
-            app.TimeTakenEditFieldLabel = uilabel(app.GridLayout1);
+            app.TimeTakenEditFieldLabel = uilabel(app.GridLayout4);
             app.TimeTakenEditFieldLabel.HorizontalAlignment = 'right';
             app.TimeTakenEditFieldLabel.FontSize = 18;
             app.TimeTakenEditFieldLabel.Layout.Row = 2;
@@ -860,7 +723,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.TimeTakenEditFieldLabel.Text = 'Time Taken';
 
             % Create TimeTakenEditField
-            app.TimeTakenEditField = uieditfield(app.GridLayout1, 'text');
+            app.TimeTakenEditField = uieditfield(app.GridLayout4, 'text');
             app.TimeTakenEditField.HorizontalAlignment = 'center';
             app.TimeTakenEditField.FontSize = 18;
             app.TimeTakenEditField.Placeholder = '00:00:00';
@@ -868,7 +731,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
             app.TimeTakenEditField.Layout.Column = 2;
 
             % Show the figure after all components are created
-            app.RamanModuleUIFigure.Visible = 'on';
+            app.RamanControlUIFigure.Visible = 'on';
         end
     end
 
@@ -876,13 +739,13 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = Raman_GUI_exported
+        function app = main_exported
 
             % Create UIFigure and components
             createComponents(app)
 
             % Register the app with App Designer
-            registerApp(app, app.RamanModuleUIFigure)
+            registerApp(app, app.RamanControlUIFigure)
 
             % Execute the startup function
             runStartupFcn(app, @startupFcn)
@@ -896,7 +759,7 @@ classdef Raman_GUI_exported < matlab.apps.AppBase
         function delete(app)
 
             % Delete UIFigure when app is deleted
-            delete(app.RamanModuleUIFigure)
+            delete(app.RamanControlUIFigure)
         end
     end
 end
