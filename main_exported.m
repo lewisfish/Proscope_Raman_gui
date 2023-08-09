@@ -62,8 +62,7 @@ classdef main_exported < matlab.apps.AppBase
         CalibrationSaveDir % Calibration directory
         dateTime % store date time at startup
     end
-    methods (Access = private)
-        
+    methods (Access = public)
         function saveData(app, colA, colB, dirPath, name)
             if ~exist('name','var')
                 filename = join([dirPath, app.PatientID], "\");
@@ -154,7 +153,7 @@ classdef main_exported < matlab.apps.AppBase
 %                         end
 %                         if app.abortSignal
                             %plot flat line
-                            plot(app.AquireAxes,linspace(0, 3000, 3000)',zeros(3000, 1),'r-');
+                            plot(app.AquireAxes,linspace(0, 3000, 3000)',randn(3000, 1),'r-');
 %                             app.abortSignal = false;
 %                         else
                             % calculate WMRS
@@ -166,7 +165,7 @@ classdef main_exported < matlab.apps.AppBase
 %                         [w, s] = app.spectrometerHandle.AquireSpectra();
 %                         saveData(app, w, s, app.SpectraSaveDir);
 %                         plot(app.AquireAxes, w, s, 'r-');
-                          plot(app.AquireAxes,linspace(0, 3000, 3000)',zeros(3000, 1),'r-');
+                          plot(app.AquireAxes,linspace(0, 3000, 3000)',randn(3000, 1),'r-');
 
                         app.SpectraAcquired = app.SpectraAcquired + 1;
                         app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
@@ -287,8 +286,8 @@ classdef main_exported < matlab.apps.AppBase
         function SavePathButtonPushed(app, event)
             app.SpectraSaveDir = uigetdir("", "Patient Data Folder");
             %stop app losing focus
-            app.RamanControlUIFigure.Visible = 'off';
-            app.RamanControlUIFigure.Visible = 'on';
+%             app.RamanControlUIFigure.Visible = 'off';
+%             app.RamanControlUIFigure.Visible = 'on';
         end
 
         % Callback function: ExitButton, RamanControlUIFigure
@@ -307,7 +306,6 @@ classdef main_exported < matlab.apps.AppBase
         % Size changed function: RamanControlUIFigure
         function RamanControlUIFigureSizeChanged(app, event)
             position = app.RamanControlUIFigure.Position;
-%             position = app.MainTab.Position;
             if position(3) < 1024 || position(4) < 768
                 uialert(app.RamanControlUIFigure, 'Too small a window!', 'Warning','Icon','warning');
                 app.RamanControlUIFigure.Position = [position(1),position(2),1024,768];
@@ -398,6 +396,7 @@ classdef main_exported < matlab.apps.AppBase
             app.RamanControlUIFigure.CloseRequestFcn = createCallbackFcn(app, @UIFigureCloseRequest, true);
             app.RamanControlUIFigure.SizeChangedFcn = createCallbackFcn(app, @RamanControlUIFigureSizeChanged, true);
             app.RamanControlUIFigure.KeyPressFcn = createCallbackFcn(app, @RamanControlUIFigureKeyPress, true);
+            app.RamanControlUIFigure.WindowState = 'maximized';
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.RamanControlUIFigure);

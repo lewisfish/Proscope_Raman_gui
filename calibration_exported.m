@@ -33,9 +33,11 @@ classdef calibration_exported < matlab.apps.AppBase
 %                 expTime = app.CallingApp.spectrometerHandle.ExposureTime;
 %                 app.CallingApp.spectrometerHandle.setExposureTime(1.0);
 %                 [w, s] = app.CallingApp.spectrometerHandle.AquireSpectra();
-%                 saveData(app.CallingApp, w, s, app.CallingApp.CalibrationSaveDir, 'calibration');
+                  w = linspace(0, 3000, 3000)';
+                  s = randn(3000, 1);
+                  app.CallingApp.saveData(w, s, app.CallingApp.CalibrationSaveDir, 'calibration');
 %                 plot(app.CalibrationAxes, w, s, 'r-');
-                  plot(app.CalibrationAxes,linspace(0, 3000, 3000)',zeros(3000, 1),'r-');
+                  plot(app.CalibrationAxes,w,s,'r-');
 
 %                 app.CallingApp.spectrometerHandle.setExposureTime(expTime);
 %             else
@@ -66,7 +68,6 @@ classdef calibration_exported < matlab.apps.AppBase
             end
             strs = [string(value), app.CallingApp.dateTime];
             app.CallingApp.PatientID = join(strs, "_");
-            disp(app.CallingApp.PatientID);
         end
     end
 
