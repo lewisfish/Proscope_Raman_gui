@@ -79,12 +79,12 @@ classdef Raman_box_laser < handle
 
             COMPort = sprintf('COM%d', COMPorts{id});
 
-            obj.SerialPort = serialport(COMPort, "BaudRate", 9600, "DataBits", 8, "FlowControl", "software", "Parity", "none", "StopBits", 1);
+            obj.SerialPort = serialport(COMPort, 9600, "DataBits", 8, "FlowControl", "software", "Parity", "none", "StopBits", 1);
             configureTerminator(obj.SerialPort,"CR/LF", "CR");
             configureCallback(obj.SerialPort,"terminator",@(src, event) read_msg_serial(obj,src,event))
             %TODO add error checking to read_msg_serial
             % also rename and maybe move inside class?
-
+            disp("laser connected");
         end 
 
         function obj = turn_off(obj)
@@ -129,9 +129,9 @@ classdef Raman_box_laser < handle
         end
 
         function obj = send_cmd(obj, msg)
-            obj.read_msg();
+%             obj.read_msg();
             writeline(obj.SerialPort, msg);
-            obj.read_msg();
+%             obj.read_msg();
             disp("DONE");
         end
 
