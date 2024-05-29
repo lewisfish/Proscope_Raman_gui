@@ -1,6 +1,7 @@
 classdef Raman_box_laser < handle
     properties (Access = private)
         SerialPort
+        Current_mesg
     end
     properties (Access = private, Constant)
         % private properties used internally so that "magic numbers" are removed
@@ -58,10 +59,6 @@ classdef Raman_box_laser < handle
            disp("Laser off!")
         end
        
-
-
-        % configureCallback(device,"terminator",callbackFcn) 
-
         function obj = connect_to_laser(obj)
             % get all serial devices
             devices = obj.IDSerialComs();
@@ -83,7 +80,7 @@ classdef Raman_box_laser < handle
             configureTerminator(obj.SerialPort,"CR/LF", "CR");
             configureCallback(obj.SerialPort,"terminator",@(src, event) read_msg_serial(obj,src,event))
             %TODO add error checking to read_msg_serial
-            % also rename and maybe move inside class?
+            % also rename?
             disp("laser connected");
         end 
 
@@ -94,7 +91,6 @@ classdef Raman_box_laser < handle
         end
 
         function obj = set_power(obj, power)
-           
             msg = replace(obj.OPTICAL_REF_POWER, "XXX", num2str(power));
             obj.send_cmd(msg);
             
@@ -103,15 +99,6 @@ classdef Raman_box_laser < handle
         function obj = read_power(obj)
             msg = obj.OUTPUT_POWER;
             obj.send_cmd(msg);
-        end
-
-        function obj = read_msg(obj)
-            msg = "";
-            while obj.SerialPort.NumBytesAvailable > 1
-               disp(obj.SerialPort.NumBytesAvailable);
-               msg = strcat(msg, ":", readline(obj.SerialPort));
-            end
-            obj.check_error(msg);
         end
 
         function obj = check_error(obj, msg)
@@ -129,21 +116,19 @@ classdef Raman_box_laser < handle
         end
 
         function obj = send_cmd(obj, msg)
-%             obj.read_msg();
+            obj.Current_mesg = msg;
             writeline(obj.SerialPort, msg);
-%             obj.read_msg();
-            disp("DONE");
         end
 
         function obj = read_msg_serial(obj,src,~)
             data = readline(src);
+            obj.check_error(data);
             disp(data);
+            disp(obj.Current_mesg);
         end
 
     end
     methods (Static)
-
-
 
         function devices = IDSerialComs()
             % taken from here: https://uk.mathworks.com/matlabcentral/fileexchange/45675-identify-serial-com-devices-by-friendly-name-in-windows
