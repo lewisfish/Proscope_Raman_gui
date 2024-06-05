@@ -82,6 +82,9 @@ classdef Raman_box_laser < handle
             pause(100/1000);
             disp(obj.SerialPort.NumBytesAvailable);
             data = read(obj.SerialPort, obj.SerialPort.NumBytesAvailable, "char");
+            if ~contains(data, ">")
+                uiwait(errordlg("Laser not connected!", "Error"));
+            end
         end 
 
         function obj = turn_off(obj)
@@ -122,9 +125,18 @@ classdef Raman_box_laser < handle
                 write(obj.SerialPort, msg(i), "char");
                 pause(100/1000);
                 if obj.SerialPort.NumBytesAvailable < 1
-                    % TODO make a loop here that waits for bytes to be available
-                    % add a timeout?
-                    disp("fuck!");
+                    counter = 0
+                    while true
+                        if obj.SerialPort.NumBytesAvailable > 0
+                            break
+                        end
+                        if counter == 10
+                            uiwait(errordlg("Laser timed out on returning data!", "Error"));
+                            return
+                        end
+                        pause(100/1000);
+                    end
+                    counter = counter + 1
                 end
                 data = read(obj.SerialPort, obj.SerialPort.NumBytesAvailable, "char");
                 if data ~= msg(i)
