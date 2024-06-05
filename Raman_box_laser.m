@@ -1,7 +1,6 @@
 classdef Raman_box_laser < handle
     properties (Access = private)
         SerialPort
-        Current_mesg
     end
     properties (Access = private, Constant)
         % private properties used internally so that "magic numbers" are removed
@@ -48,17 +47,9 @@ classdef Raman_box_laser < handle
            % set power
            obj.set_power(100) % mW
 
-           % turn on laser
-           obj.send_cmd(obj.LASER_ON);
-
-           pause(10);
-           obj.read_power();
-
-           % turn off laser
-           obj.turn_off();
         end
        
-        function obj = connect_to_laser(obj)
+        function connect_to_laser(obj)
             % get all serial devices
             devices = obj.IDSerialComs();
             deviceNames = devices(:, 1);
@@ -77,40 +68,47 @@ classdef Raman_box_laser < handle
 
             obj.SerialPort = serialport(COMPort, 9600, "DataBits", 8, "FlowControl", "software", "Parity", "none", "StopBits", 1);
             % Send <CR> to laser to check connection
-            % TODO check it actually returns the valid message e.g "\r\n>"
             write(obj.SerialPort, char(13), "char");
             pause(100/1000);
-            disp(obj.SerialPort.NumBytesAvailable);
+            % validate laser response. should be "<LF><CR>>"
             data = read(obj.SerialPort, obj.SerialPort.NumBytesAvailable, "char");
             if ~contains(data, ">")
                 uiwait(errordlg("Laser not connected!", "Error"));
             end
         end 
 
-        function obj = turn_off(obj)
+        function turn_on(obj)
+            obj.send_cmd(obj.LASER_ON);
+        end
+
+        function turn_off(obj)
 
             obj.send_cmd(obj.LASER_OFF);
             clear obj.SerialPort;
         end
 
-        function obj = set_power(obj, power)
+        function set_power(obj, power)
             msg = replace(obj.OPTICAL_REF_POWER, "XXX", num2str(power, "%3i"));
             obj.send_cmd(msg);
             
         end
         
-        function obj = read_power(obj)
-            msg = obj.OUTPUT_POWER;
-            obj.send_cmd(msg);
-            data = read(obj.SerialPort, obj.SerialPort.NumBytesAvailable, "char");
-            disp(data);
+        function pwr = read_power(obj)
+            output = obj.send_cmd(obj.OUTPUT_POWER);
+            pwr = obj.strip_msg(output);
         end
 
-        function obj = check_error(obj, msg)
+        function bias = read_laser_bias(obj)
+            output = obj.send_cmd(obj.LASER_BIAS);
+            bias = obj.strip_msg(output);
+        end
+
+        function check_error(obj, msg)
 
             tf = contains(msg, "E0");
             if(tf)
-                uiwait(errordlg("Command not recogonised!", "Error"));
+                err_msg = sprirtf('Command not recognised! %s', msg);
+                uiwait(errordlg(err_msg, "Error"));
             end
 
             tf = contains(msg, "E1");
@@ -120,12 +118,13 @@ classdef Raman_box_laser < handle
             end
         end
        
-        function obj = send_cmd(obj, msg)
+        function output = send_cmd(obj, msg)
+
             for i = 1:length(msg)
                 write(obj.SerialPort, msg(i), "char");
                 pause(100/1000);
                 if obj.SerialPort.NumBytesAvailable < 1
-                    counter = 0
+                    counter = 0;
                     while true
                         if obj.SerialPort.NumBytesAvailable > 0
                             break
@@ -135,8 +134,8 @@ classdef Raman_box_laser < handle
                             return
                         end
                         pause(100/1000);
+                        counter = counter + 1;
                     end
-                    counter = counter + 1
                 end
                 data = read(obj.SerialPort, obj.SerialPort.NumBytesAvailable, "char");
                 if data ~= msg(i)
@@ -147,13 +146,19 @@ classdef Raman_box_laser < handle
             end
             write(obj.SerialPort, char(13), "char");
             pause(100/1000);
-            data = read(obj.SerialPort, obj.SerialPort.NumBytesAvailable, "char");
-            disp(data);
-            %TODO check this msg
+            % somehow need to return this maybe?
+            output = read(obj.SerialPort, obj.SerialPort.NumBytesAvailable, "char");
+            obj.check_error(output);
         end
 
     end
     methods (Static)
+
+        function new_msg = strip_msg(msg)
+            % strip leading and trailing whitespace.
+            % also strips trailing ">" character
+            new_msg = strip(msg(1:end-1));
+        end
 
         function devices = IDSerialComs()
             % taken from here: https://uk.mathworks.com/matlabcentral/fileexchange/45675-identify-serial-com-devices-by-friendly-name-in-windows
