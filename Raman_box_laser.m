@@ -42,23 +42,25 @@ classdef Raman_box_laser < handle
     methods
         function obj = Raman_box_laser()
             
-%            obj.connect_to_laser();
+           obj.connect_to_laser();
 %            pause(30);
            % check laser is on
 %            obj.send_cmd(" ");
            % set mode to APC
-% % %            obj.send_cmd(obj.APC_MODE);
+           obj.send_cmd(obj.APC_MODE);
            % set power
-%            obj.set_power(100) % mW
+           obj.set_power(100) % mW
 
            % turn on laser
+           obj.send_cmd_new(obj.LASER_ON);
+
 % %            obj.send_cmd(obj.LASER_ON);
 %            disp("Laser On!");
-%            pause(10);
-%                       obj.read_power();
+           pause(10);
+            obj.read_power();
 
            % turn off laser
-%            obj.turn_off();
+           obj.turn_off();
 %            disp("Laser off!")
         end
        
@@ -82,27 +84,31 @@ classdef Raman_box_laser < handle
             obj.SerialPort = serialport(COMPort, 9600, "DataBits", 8, "FlowControl", "software", "Parity", "none", "StopBits", 1);
             configureTerminator(obj.SerialPort,"CR/LF", "CR");
             configureCallback(obj.SerialPort,"terminator",@(src, event) read_msg_serial(obj,src,event))
-            obj.send_cmd(char(13));
-            %TODO add error checking to read_msg_serial
-            % also rename?
-%             disp("laser connected");
+            write(obj.SerialPort, char(13), "char");
+            data = read(obj.SerialPort, obj.SerialPort.NumBytesAvailable, "char");
+            disp(data);
         end 
 
         function obj = turn_off(obj)
 
-            obj.send_cmd(obj.LASER_OFF)
+            % obj.send_cmd(obj.LASER_OFF)
+            obj.send_cmd_new(obj.LASER_OFF);
             clear obj.SerialPort;
         end
 
         function obj = set_power(obj, power)
             msg = replace(obj.OPTICAL_REF_POWER, "XXX", num2str(power, "%3i"));
-            obj.send_cmd(msg);
+            % obj.send_cmd(msg);
+            obj.send_cmd_new(msg);
             
         end
         
         function obj = read_power(obj)
             msg = obj.OUTPUT_POWER;
-            obj.send_cmd(msg);
+            % obj.send_cmd(msg);
+            obj.send_cmd_new(msg);
+            data = read(obj.SerialPort, obj.SerialPort.NumBytesAvailable, "char");
+            disp(data);
         end
 
         function obj = check_error(obj, msg)
@@ -119,6 +125,19 @@ classdef Raman_box_laser < handle
             end
         end
        
+        function obj = send_cmd_new(obj, msg)
+            for i = 1:length(msg)
+                write(obj.SerialPort, msg(i), "char");
+                if obj.SerialPort.NumBytesAvailable < 1
+                    disp("fuck!");
+                end
+                data = read(obj.SerialPort, obj.SerialPort.NumBytesAvailable, "char");
+                if data ~= msg(i)
+                    disp("fuck2!");
+                end
+            end
+            write(obj.SerialPort, char(13), "char");
+        end
         
         function obj = send_cmd(obj, msg)
             obj.Current_mesg = msg;
