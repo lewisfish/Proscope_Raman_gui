@@ -23,23 +23,13 @@ classdef main_exported < matlab.apps.AppBase
         PanelMain                      matlab.ui.container.Panel
         GridLayout3                    matlab.ui.container.GridLayout
         ClinicalModeButton             matlab.ui.control.Button
-        SingleRamanButton              matlab.ui.control.Button
         AbortButton                    matlab.ui.control.Button
         AcquireButton                  matlab.ui.control.Button
         ExitButton                     matlab.ui.control.Button
-        WRMSButton                     matlab.ui.control.Button
         EngineeringModeButton          matlab.ui.control.Button
         SavePathButton                 matlab.ui.control.Button
-        TuningStepsEditField           matlab.ui.control.NumericEditField
-        TuningStepsEditFieldLabel      matlab.ui.control.Label
         LaserPowerEditField            matlab.ui.control.NumericEditField
         LaserPowerEditFieldLabel       matlab.ui.control.Label
-        MinWavelengthEditField         matlab.ui.control.NumericEditField
-        MinWavelengthEditFieldLabel    matlab.ui.control.Label
-        MaxWavelengthEditField         matlab.ui.control.NumericEditField
-        MaxWavelengthEditFieldLabel    matlab.ui.control.Label
-        CentralWavelengthEditField     matlab.ui.control.NumericEditField
-        CentralWavelengthEditFieldLabel  matlab.ui.control.Label
         AquireAxes                     matlab.ui.control.UIAxes
     end
 
@@ -50,7 +40,7 @@ classdef main_exported < matlab.apps.AppBase
         tmr % Timer class
         LaserHandle % Laser class
         spectrometerHandle % spectrometer class
-        WMRS = false % Flag set to true if WRMS mode is active.
+%         WMRS = false % Flag set to true if WRMS mode is active.
         steps =5% number of spectra to take for WRMS mode.
         abortSignal = false % abort acquistion
     end
@@ -99,8 +89,12 @@ classdef main_exported < matlab.apps.AppBase
                             'StartDelay',0,... % In seconds.
                             'TasksToExecute',inf,...  % number of times to update
                             'ExecutionMode','fixedSpacing');
+% old
 %             app.LaserHandle = Laser();
 %             app.LaserHandle.enableLaserHeaterPower();
+% new
+%             app.LaserHandle = Raman_box_laser();
+%             app.LaserHandle.turn_on();
             
             %add spectrometer setup here
 %             app.spectrometerHandle = Andor(-70.0, 1, 1.00, 0, 0, 1, 150, 785.0, app.RamanControlUIFigure);
@@ -123,44 +117,6 @@ classdef main_exported < matlab.apps.AppBase
                     if app.time == 0
                         start(app.tmr);
                     end
-                    if app.WMRS
-                        %WRMS mode
-%                         wavelengthStep = (app.spectrometerHandle.maxWavelength - app.spectrometerHandle.minWavelength) / (app.steps-1); % nm
-%                         wavelength = app.spectrometerHandle.minWavelength;
-%                         spectrums = [];
-%                         for i=1:app.steps-1
-%                             if app.spectrometerHandle.abortSignal == true
-%                                 break;
-%                             end
-%                             % convert wavelength to current
-%                             current = app.spectrometerHandle.wavelength_LUT(wavelength);
-%                             %set current
-%                             app.LaserHandle.setHeaterCurrent(current);
-%                             % write current to laser
-%                             app.LaserHandle.writeHeaterCurrent();
-%                             if app.abortSignal
-%                                 break
-%                             end
-%                             % get new spectra
-%                             [w, s] = app.spectrometerHandle.AquireSpectra();
-%                             spectrums = [spectrums s];
-%                             %increment wavelength
-%                             wavelength = wavelength + wavelengthStep;
-%                             
-%                             app.SpectraAcquired = app.SpectraAcquired + 1;
-%                             app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
-% 
-%                         end
-%                         if app.abortSignal
-                            %plot flat line
-                            plot(app.AquireAxes,linspace(0, 3000, 3000)',randn(3000, 1),'r-');
-%                             app.abortSignal = false;
-%                         else
-                            % calculate WMRS
-%                             v1 = calculateWMRspec(spectrums, 785);
-%                             plot(app.AquireAxes, w, v1, 'r-');
-%                         end
-                    else
 %                       single spectra mode
 %                         [w, s] = app.spectrometerHandle.AquireSpectra();
 %                         saveData(app, w, s, app.SpectraSaveDir);
@@ -169,7 +125,6 @@ classdef main_exported < matlab.apps.AppBase
 
                         app.SpectraAcquired = app.SpectraAcquired + 1;
                         app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
-                    end
                 else
                     uialert(app.RamanControlUIFigure, "Save path for spectra not set!", "Path not set")
                 end
@@ -187,36 +142,10 @@ classdef main_exported < matlab.apps.AppBase
             app.AcquireButton.Enable = true;
         end
 
-        % Button pushed function: WRMSButton
-        function WRMSButtonPushed(app, event)
-            app.WRMSButton.Visible = "off";
-            app.WMRS = true;
-            app.SingleRamanButton.Visible = "on";
-            title(app.AquireAxes, 'WMR Spectra');
-        end
-
-        % Button pushed function: SingleRamanButton
-        function SingleRamanButtonPushed(app, event)
-            if app.WMRS == true
-                app.WMRS = false;
-                % reset wavelength of laser back to default.
-%                 wavelength = app.spectrometerHandle.CentralWavelength;
-%                 current = app.spectrometerHandle.wavelength_LUT(wavelength);
-%                 app.LaserHandle.setHeaterCurrent(current);
-%                 app.LaserHandle.writeHeaterCurrent();
-            end
-            app.WRMSButton.Visible = "on";
-            app.SingleRamanButton.Visible = "off";
-            title(app.AquireAxes, 'Raman Spectra');
-        end
-
         % Button pushed function: EngineeringModeButton
         function EngineeringModeButtonPushed(app, event)
             answer = inputdlg("Enter Password");
             if answer == "proscope2023"
-                app.CentralWavelengthEditField.Visible = 'on';
-                app.CentralWavelengthEditFieldLabel.Visible = 'on';
-    
                 app.CCDTempEditField.Visible = 'on';
                 app.CCDTempEditFieldLabel.Visible = 'on';
                 
@@ -226,21 +155,12 @@ classdef main_exported < matlab.apps.AppBase
                 app.MaxRamanShiftEditField.Visible = 'on';
                 app.MaxRamanShiftEditFieldLabel.Visible = 'on';
     
-                app.MinWavelengthEditField.Visible = 'on';
-                app.MinWavelengthEditFieldLabel.Visible = 'on';
-    
-                app.MaxWavelengthEditField.Visible = 'on';
-                app.MaxWavelengthEditFieldLabel.Visible = 'on';
-    
                 app.LaserPowerEditField.Visible = "on";
                 app.LaserPowerEditFieldLabel.Visible = "on";
                 
                 app.SlitWidthEditField.Visible = "on";
                 app.SlitWidthEditFieldLabel.Visible = "on";
-                
-                app.TuningStepsEditField.Visible = "on";
-                app.TuningStepsEditFieldLabel.Visible = "on";
-                
+   
                 app.EngineeringModeButton.Visible = "off";
                 app.ClinicalModeButton.Visible = "on";
             else
@@ -251,9 +171,6 @@ classdef main_exported < matlab.apps.AppBase
         % Button pushed function: ClinicalModeButton
         function ClinicalModeButtonPushed(app, event)
 
-            app.CentralWavelengthEditField.Visible = 'off';
-            app.CentralWavelengthEditFieldLabel.Visible = 'off';
-
             app.CCDTempEditField.Visible = 'off';
             app.CCDTempEditFieldLabel.Visible = 'off';
             
@@ -263,21 +180,12 @@ classdef main_exported < matlab.apps.AppBase
             app.MaxRamanShiftEditField.Visible = 'off';
             app.MaxRamanShiftEditFieldLabel.Visible = 'off';
 
-            app.MinWavelengthEditField.Visible = 'off';
-            app.MinWavelengthEditFieldLabel.Visible = 'off';
-
-            app.MaxWavelengthEditField.Visible = 'off';
-            app.MaxWavelengthEditFieldLabel.Visible = 'off';
-
             app.LaserPowerEditField.Visible = "off";
             app.LaserPowerEditFieldLabel.Visible = "off";
             
             app.SlitWidthEditField.Visible = "off";
             app.SlitWidthEditFieldLabel.Visible = "off";
-            
-            app.TuningStepsEditField.Visible = "off";
-            app.TuningStepsEditFieldLabel.Visible = "off";
-            
+                    
             app.EngineeringModeButton.Visible = "on";
             app.ClinicalModeButton.Visible = "off";
         end
@@ -296,6 +204,7 @@ classdef main_exported < matlab.apps.AppBase
             if answer == "Yes"
 %                 app.spectrometerHandle.ShutDownSafe(app.RamanControlUIFigure);
 %                 app.LaserHandle.switchOff();
+%               app.LaserHandle.turn_off();
                 stop(app.tmr);
                 delete(app.tmr);
                 delete(app.CalibrationApp);
@@ -349,35 +258,11 @@ classdef main_exported < matlab.apps.AppBase
             app.spectrometerHandle.setSlitWidth(value);
         end
 
-        % Value changed function: CentralWavelengthEditField
-        function CentralWavelengthEditFieldValueChanged(app, event)
-            value = app.CentralWavelengthEditField.Value;
-            app.spectrometerHandle.setCentralWavelength(value);
-        end
-
-        % Value changed function: MaxWavelengthEditField
-        function MaxWavelengthEditFieldValueChanged(app, event)
-            value = app.MaxWavelengthEditField.Value;
-            app.spectrometerHandle.setMaxWavelength(value);
-        end
-
-        % Value changed function: MinWavelengthEditField
-        function MinWavelengthEditFieldValueChanged(app, event)
-            value = app.MinWavelengthEditField.Value;
-            app.spectrometerHandle.setMinWavelength(value);
-        end
-
-        % Value changed function: LaserPowerEditField
+        % Callback function
         function LaserPowerEditFieldValueChanged(app, event)
             value = app.LaserPowerEditField.Value;
             %this is heater current in FBH parlance...
             app.LaserHandle.setCurrentViaPower(value);
-        end
-
-        % Value changed function: TuningStepsEditField
-        function TuningStepsEditFieldValueChanged(app, event)
-            value = app.TuningStepsEditField.Value;
-            app.steps = value;
         end
     end
 
@@ -424,72 +309,12 @@ classdef main_exported < matlab.apps.AppBase
             app.GridLayout3.ColumnWidth = {'1x', '1x', '1x', '1x'};
             app.GridLayout3.RowHeight = {'1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x'};
 
-            % Create CentralWavelengthEditFieldLabel
-            app.CentralWavelengthEditFieldLabel = uilabel(app.GridLayout3);
-            app.CentralWavelengthEditFieldLabel.HorizontalAlignment = 'right';
-            app.CentralWavelengthEditFieldLabel.FontSize = 18;
-            app.CentralWavelengthEditFieldLabel.Visible = 'off';
-            app.CentralWavelengthEditFieldLabel.Layout.Row = 1;
-            app.CentralWavelengthEditFieldLabel.Layout.Column = [2 3];
-            app.CentralWavelengthEditFieldLabel.Text = 'Central Wavelength';
-
-            % Create CentralWavelengthEditField
-            app.CentralWavelengthEditField = uieditfield(app.GridLayout3, 'numeric');
-            app.CentralWavelengthEditField.Limits = [0 Inf];
-            app.CentralWavelengthEditField.ValueDisplayFormat = '%.2f nm';
-            app.CentralWavelengthEditField.ValueChangedFcn = createCallbackFcn(app, @CentralWavelengthEditFieldValueChanged, true);
-            app.CentralWavelengthEditField.FontSize = 18;
-            app.CentralWavelengthEditField.Visible = 'off';
-            app.CentralWavelengthEditField.Layout.Row = 1;
-            app.CentralWavelengthEditField.Layout.Column = 4;
-            app.CentralWavelengthEditField.Value = 785;
-
-            % Create MaxWavelengthEditFieldLabel
-            app.MaxWavelengthEditFieldLabel = uilabel(app.GridLayout3);
-            app.MaxWavelengthEditFieldLabel.HorizontalAlignment = 'right';
-            app.MaxWavelengthEditFieldLabel.FontSize = 18;
-            app.MaxWavelengthEditFieldLabel.Visible = 'off';
-            app.MaxWavelengthEditFieldLabel.Layout.Row = 2;
-            app.MaxWavelengthEditFieldLabel.Layout.Column = [2 3];
-            app.MaxWavelengthEditFieldLabel.Text = 'Max Wavelength';
-
-            % Create MaxWavelengthEditField
-            app.MaxWavelengthEditField = uieditfield(app.GridLayout3, 'numeric');
-            app.MaxWavelengthEditField.Limits = [0 Inf];
-            app.MaxWavelengthEditField.ValueDisplayFormat = '%.2f nm';
-            app.MaxWavelengthEditField.ValueChangedFcn = createCallbackFcn(app, @MaxWavelengthEditFieldValueChanged, true);
-            app.MaxWavelengthEditField.FontSize = 18;
-            app.MaxWavelengthEditField.Visible = 'off';
-            app.MaxWavelengthEditField.Layout.Row = 2;
-            app.MaxWavelengthEditField.Layout.Column = 4;
-            app.MaxWavelengthEditField.Value = 785.5;
-
-            % Create MinWavelengthEditFieldLabel
-            app.MinWavelengthEditFieldLabel = uilabel(app.GridLayout3);
-            app.MinWavelengthEditFieldLabel.HorizontalAlignment = 'right';
-            app.MinWavelengthEditFieldLabel.FontSize = 18;
-            app.MinWavelengthEditFieldLabel.Visible = 'off';
-            app.MinWavelengthEditFieldLabel.Layout.Row = 3;
-            app.MinWavelengthEditFieldLabel.Layout.Column = [2 3];
-            app.MinWavelengthEditFieldLabel.Text = 'Min Wavelength';
-
-            % Create MinWavelengthEditField
-            app.MinWavelengthEditField = uieditfield(app.GridLayout3, 'numeric');
-            app.MinWavelengthEditField.Limits = [0 Inf];
-            app.MinWavelengthEditField.ValueDisplayFormat = '%.2f nm';
-            app.MinWavelengthEditField.ValueChangedFcn = createCallbackFcn(app, @MinWavelengthEditFieldValueChanged, true);
-            app.MinWavelengthEditField.FontSize = 18;
-            app.MinWavelengthEditField.Visible = 'off';
-            app.MinWavelengthEditField.Layout.Row = 3;
-            app.MinWavelengthEditField.Layout.Column = 4;
-            app.MinWavelengthEditField.Value = 784.5;
-
             % Create LaserPowerEditFieldLabel
             app.LaserPowerEditFieldLabel = uilabel(app.GridLayout3);
             app.LaserPowerEditFieldLabel.HorizontalAlignment = 'right';
             app.LaserPowerEditFieldLabel.FontSize = 18;
             app.LaserPowerEditFieldLabel.Visible = 'off';
-            app.LaserPowerEditFieldLabel.Layout.Row = 4;
+            app.LaserPowerEditFieldLabel.Layout.Row = 5;
             app.LaserPowerEditFieldLabel.Layout.Column = [2 3];
             app.LaserPowerEditFieldLabel.Text = 'Laser Power';
 
@@ -497,34 +322,11 @@ classdef main_exported < matlab.apps.AppBase
             app.LaserPowerEditField = uieditfield(app.GridLayout3, 'numeric');
             app.LaserPowerEditField.Limits = [0 Inf];
             app.LaserPowerEditField.ValueDisplayFormat = '%.2f mW';
-            app.LaserPowerEditField.ValueChangedFcn = createCallbackFcn(app, @LaserPowerEditFieldValueChanged, true);
             app.LaserPowerEditField.FontSize = 18;
             app.LaserPowerEditField.Visible = 'off';
-            app.LaserPowerEditField.Layout.Row = 4;
+            app.LaserPowerEditField.Layout.Row = 5;
             app.LaserPowerEditField.Layout.Column = 4;
             app.LaserPowerEditField.Value = 50.5;
-
-            % Create TuningStepsEditFieldLabel
-            app.TuningStepsEditFieldLabel = uilabel(app.GridLayout3);
-            app.TuningStepsEditFieldLabel.HorizontalAlignment = 'right';
-            app.TuningStepsEditFieldLabel.FontSize = 18;
-            app.TuningStepsEditFieldLabel.Visible = 'off';
-            app.TuningStepsEditFieldLabel.Layout.Row = 5;
-            app.TuningStepsEditFieldLabel.Layout.Column = [2 3];
-            app.TuningStepsEditFieldLabel.Text = 'Tuning Steps';
-
-            % Create TuningStepsEditField
-            app.TuningStepsEditField = uieditfield(app.GridLayout3, 'numeric');
-            app.TuningStepsEditField.Limits = [0 Inf];
-            app.TuningStepsEditField.RoundFractionalValues = 'on';
-            app.TuningStepsEditField.ValueDisplayFormat = '%.0f';
-            app.TuningStepsEditField.ValueChangedFcn = createCallbackFcn(app, @TuningStepsEditFieldValueChanged, true);
-            app.TuningStepsEditField.HorizontalAlignment = 'center';
-            app.TuningStepsEditField.FontSize = 18;
-            app.TuningStepsEditField.Visible = 'off';
-            app.TuningStepsEditField.Layout.Row = 5;
-            app.TuningStepsEditField.Layout.Column = 4;
-            app.TuningStepsEditField.Value = 5;
 
             % Create SavePathButton
             app.SavePathButton = uibutton(app.GridLayout3, 'push');
@@ -542,15 +344,6 @@ classdef main_exported < matlab.apps.AppBase
             app.EngineeringModeButton.Layout.Row = 9;
             app.EngineeringModeButton.Layout.Column = [3 4];
             app.EngineeringModeButton.Text = 'Engineering Mode';
-
-            % Create WRMSButton
-            app.WRMSButton = uibutton(app.GridLayout3, 'push');
-            app.WRMSButton.ButtonPushedFcn = createCallbackFcn(app, @WRMSButtonPushed, true);
-            app.WRMSButton.BackgroundColor = [0 1 0];
-            app.WRMSButton.FontSize = 18;
-            app.WRMSButton.Layout.Row = 8;
-            app.WRMSButton.Layout.Column = [1 2];
-            app.WRMSButton.Text = 'WRMS';
 
             % Create ExitButton
             app.ExitButton = uibutton(app.GridLayout3, 'push');
@@ -578,16 +371,6 @@ classdef main_exported < matlab.apps.AppBase
             app.AbortButton.Layout.Row = 7;
             app.AbortButton.Layout.Column = [3 4];
             app.AbortButton.Text = 'Abort';
-
-            % Create SingleRamanButton
-            app.SingleRamanButton = uibutton(app.GridLayout3, 'push');
-            app.SingleRamanButton.ButtonPushedFcn = createCallbackFcn(app, @SingleRamanButtonPushed, true);
-            app.SingleRamanButton.BackgroundColor = [0 1 0];
-            app.SingleRamanButton.FontSize = 18;
-            app.SingleRamanButton.Visible = 'off';
-            app.SingleRamanButton.Layout.Row = 8;
-            app.SingleRamanButton.Layout.Column = [1 2];
-            app.SingleRamanButton.Text = 'Single Raman';
 
             % Create ClinicalModeButton
             app.ClinicalModeButton = uibutton(app.GridLayout3, 'push');
