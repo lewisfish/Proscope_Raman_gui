@@ -75,10 +75,12 @@ classdef Raman_box_laser < handle
             if ~contains(data, ">")
                 uiwait(errordlg("Laser not connected!", "Error"));
             end
+            obj.check_alarm_status();
         end 
 
         function turn_on(obj)
             obj.send_cmd(obj.LASER_ON);
+            obj.check_alarm_status();
         end
 
         function turn_off(obj)
@@ -90,7 +92,8 @@ classdef Raman_box_laser < handle
         function set_power(obj, power)
             msg = replace(obj.OPTICAL_REF_POWER, "XXX", num2str(power, "%3i"));
             obj.send_cmd(msg);
-            
+            obj.check_alarm_status();
+
         end
         
         function pwr = read_power(obj)
@@ -103,6 +106,32 @@ classdef Raman_box_laser < handle
             bias = obj.strip_msg(output);
         end
 
+        
+        function check_alarm_status(obj)
+
+            msg = obj.send_cmd(obj.ALARM_STAT);
+            number = uint8(str2double(msg));
+            PWR_mask = 0b1000000;
+            LASER_TEC_mask  = 0b0100000;
+            LASER_OFF_mask  = 0b0001000;
+            TEMP_mask       = 0b0000100;
+            LASER_BIAS_mask = 0b0000001;
+
+            if bitand(number, PWR_mask) > 0
+                uiwait(errordlg("power alarm", "Error"));
+            elseif bitand(number, LASER_TEC_mask) > 0
+                uiwait(errordlg("laser tec alarm", "Error"));
+            elseif bitand(number, LASER_OFF_mask) > 0   
+                uiwait(errordlg("LASEr off alarm", "Error"));
+            elseif bitand(number, TEMP_mask) > 0   
+                uiwait(errordlg("temp alarm", "Error"));
+            elseif bitand(number, LASER_BIAS_mask) > 0   
+                uiwait(errordlg("LASER bias alarm", "Error"));
+            else
+                disp("fuck!");
+            end
+        end
+        
         function check_error(obj, msg)
 
             tf = contains(msg, "E0");
