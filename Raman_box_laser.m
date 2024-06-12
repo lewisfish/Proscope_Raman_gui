@@ -93,7 +93,6 @@ classdef Raman_box_laser < handle
             msg = replace(obj.OPTICAL_REF_POWER, "XXX", num2str(power, "%3i"));
             obj.send_cmd(msg);
             obj.check_alarm_status();
-
         end
         
         function pwr = read_power(obj)
@@ -127,8 +126,8 @@ classdef Raman_box_laser < handle
                 uiwait(errordlg("temp alarm", "Error"));
             elseif bitand(number, LASER_BIAS_mask) > 0   
                 uiwait(errordlg("LASER bias alarm", "Error"));
-            else
-                disp("fuck!");
+            elseif number > 0
+                uiwait(errordlg("Unspecified alarm!", "Error"));
             end
         end
         
