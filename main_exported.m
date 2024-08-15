@@ -10,18 +10,16 @@ classdef main_exported < matlab.apps.AppBase
         TimeTakenEditFieldLabel        matlab.ui.control.Label
         SpectraAcquiredEditField       matlab.ui.control.NumericEditField
         SpectraAcquiredEditFieldLabel  matlab.ui.control.Label
-        PanelEngineering               matlab.ui.container.Panel
-        GridLayout2                    matlab.ui.container.GridLayout
-        MaxRamanShiftEditField         matlab.ui.control.NumericEditField
-        MaxRamanShiftEditFieldLabel    matlab.ui.control.Label
-        MinRamanShiftEditField         matlab.ui.control.NumericEditField
-        MinRamanShiftEditFieldLabel    matlab.ui.control.Label
-        SlitWidthEditField             matlab.ui.control.NumericEditField
-        SlitWidthEditFieldLabel        matlab.ui.control.Label
-        CCDTempEditField               matlab.ui.control.NumericEditField
-        CCDTempEditFieldLabel          matlab.ui.control.Label
         PanelMain                      matlab.ui.container.Panel
         GridLayout3                    matlab.ui.container.GridLayout
+        SlitWidthEditFieldLabel        matlab.ui.control.Label
+        SlitWidthEditField             matlab.ui.control.NumericEditField
+        CCDTempEditFieldLabel          matlab.ui.control.Label
+        CCDTempEditField               matlab.ui.control.NumericEditField
+        MaxRamanShiftEditFieldLabel    matlab.ui.control.Label
+        MaxRamanShiftEditField         matlab.ui.control.NumericEditField
+        MinRamanShiftEditFieldLabel    matlab.ui.control.Label
+        MinRamanShiftEditField         matlab.ui.control.NumericEditField
         ClinicalModeButton             matlab.ui.control.Button
         AbortButton                    matlab.ui.control.Button
         AcquireButton                  matlab.ui.control.Button
@@ -93,7 +91,7 @@ classdef main_exported < matlab.apps.AppBase
 %             app.LaserHandle = Laser();
 %             app.LaserHandle.enableLaserHeaterPower();
 % new
-%             app.LaserHandle = Raman_box_laser();
+            app.LaserHandle = Raman_box_laser();
 %             app.LaserHandle.turn_on();
             
             %add spectrometer setup here
@@ -117,6 +115,7 @@ classdef main_exported < matlab.apps.AppBase
                     if app.time == 0
                         start(app.tmr);
                     end
+                    app.LaserHandle.turn_on();
 %                       single spectra mode
 %                         [w, s] = app.spectrometerHandle.AquireSpectra();
 %                         saveData(app, w, s, app.SpectraSaveDir);
@@ -131,6 +130,7 @@ classdef main_exported < matlab.apps.AppBase
             else
                 uialert(app.RamanControlUIFigure, "Calibration Data not taken!","Calibration Warning");
             end
+            app.LaserHandle.turn_off();
             app.AcquireButton.Enable = true;
         end
 
@@ -204,7 +204,7 @@ classdef main_exported < matlab.apps.AppBase
             if answer == "Yes"
 %                 app.spectrometerHandle.ShutDownSafe(app.RamanControlUIFigure);
 %                 app.LaserHandle.switchOff();
-%               app.LaserHandle.turn_off();
+                app.LaserHandle.shutdown();
                 stop(app.tmr);
                 delete(app.tmr);
                 delete(app.CalibrationApp);
@@ -295,7 +295,7 @@ classdef main_exported < matlab.apps.AppBase
             ylabel(app.AquireAxes, 'Raman Intensity/arb.')
             zlabel(app.AquireAxes, 'Z')
             app.AquireAxes.FontSize = 18;
-            app.AquireAxes.Layout.Row = 2;
+            app.AquireAxes.Layout.Row = [1 2];
             app.AquireAxes.Layout.Column = 1;
 
             % Create PanelMain
@@ -314,7 +314,7 @@ classdef main_exported < matlab.apps.AppBase
             app.LaserPowerEditFieldLabel.HorizontalAlignment = 'right';
             app.LaserPowerEditFieldLabel.FontSize = 18;
             app.LaserPowerEditFieldLabel.Visible = 'off';
-            app.LaserPowerEditFieldLabel.Layout.Row = 5;
+            app.LaserPowerEditFieldLabel.Layout.Row = 6;
             app.LaserPowerEditFieldLabel.Layout.Column = [2 3];
             app.LaserPowerEditFieldLabel.Text = 'Laser Power';
 
@@ -324,7 +324,7 @@ classdef main_exported < matlab.apps.AppBase
             app.LaserPowerEditField.ValueDisplayFormat = '%.2f mW';
             app.LaserPowerEditField.FontSize = 18;
             app.LaserPowerEditField.Visible = 'off';
-            app.LaserPowerEditField.Layout.Row = 5;
+            app.LaserPowerEditField.Layout.Row = 6;
             app.LaserPowerEditField.Layout.Column = 4;
             app.LaserPowerEditField.Value = 50.5;
 
@@ -332,7 +332,7 @@ classdef main_exported < matlab.apps.AppBase
             app.SavePathButton = uibutton(app.GridLayout3, 'push');
             app.SavePathButton.ButtonPushedFcn = createCallbackFcn(app, @SavePathButtonPushed, true);
             app.SavePathButton.FontSize = 18;
-            app.SavePathButton.Layout.Row = 6;
+            app.SavePathButton.Layout.Row = 7;
             app.SavePathButton.Layout.Column = [3 4];
             app.SavePathButton.Text = 'Save Path';
 
@@ -359,7 +359,7 @@ classdef main_exported < matlab.apps.AppBase
             app.AcquireButton.ButtonPushedFcn = createCallbackFcn(app, @AcquireButtonPushed, true);
             app.AcquireButton.BackgroundColor = [0.0706 0.6196 1];
             app.AcquireButton.FontSize = 18;
-            app.AcquireButton.Layout.Row = 7;
+            app.AcquireButton.Layout.Row = 9;
             app.AcquireButton.Layout.Column = [1 2];
             app.AcquireButton.Text = 'Acquire';
 
@@ -368,8 +368,8 @@ classdef main_exported < matlab.apps.AppBase
             app.AbortButton.ButtonPushedFcn = createCallbackFcn(app, @AbortButtonPushed, true);
             app.AbortButton.BackgroundColor = [0.851 0.3294 0.102];
             app.AbortButton.FontSize = 18;
-            app.AbortButton.Layout.Row = 7;
-            app.AbortButton.Layout.Column = [3 4];
+            app.AbortButton.Layout.Row = 8;
+            app.AbortButton.Layout.Column = [1 2];
             app.AbortButton.Text = 'Abort';
 
             % Create ClinicalModeButton
@@ -382,93 +382,83 @@ classdef main_exported < matlab.apps.AppBase
             app.ClinicalModeButton.Layout.Column = [3 4];
             app.ClinicalModeButton.Text = 'Clinical Mode';
 
-            % Create PanelEngineering
-            app.PanelEngineering = uipanel(app.GridLayout);
-            app.PanelEngineering.AutoResizeChildren = 'off';
-            app.PanelEngineering.Layout.Row = 1;
-            app.PanelEngineering.Layout.Column = 1;
+            % Create MinRamanShiftEditField
+            app.MinRamanShiftEditField = uieditfield(app.GridLayout3, 'numeric');
+            app.MinRamanShiftEditField.Limits = [0 Inf];
+            app.MinRamanShiftEditField.ValueDisplayFormat = '%11.4g nm';
+            app.MinRamanShiftEditField.ValueChangedFcn = createCallbackFcn(app, @MinRamanShiftEditFieldValueChanged, true);
+            app.MinRamanShiftEditField.FontSize = 18;
+            app.MinRamanShiftEditField.Visible = 'off';
+            app.MinRamanShiftEditField.Layout.Row = 4;
+            app.MinRamanShiftEditField.Layout.Column = 4;
 
-            % Create GridLayout2
-            app.GridLayout2 = uigridlayout(app.PanelEngineering);
-            app.GridLayout2.ColumnWidth = {'1x', '0.65x', '1x', '0.5x'};
+            % Create MinRamanShiftEditFieldLabel
+            app.MinRamanShiftEditFieldLabel = uilabel(app.GridLayout3);
+            app.MinRamanShiftEditFieldLabel.HorizontalAlignment = 'right';
+            app.MinRamanShiftEditFieldLabel.FontSize = 18;
+            app.MinRamanShiftEditFieldLabel.Visible = 'off';
+            app.MinRamanShiftEditFieldLabel.Layout.Row = 4;
+            app.MinRamanShiftEditFieldLabel.Layout.Column = [2 3];
+            app.MinRamanShiftEditFieldLabel.Text = 'Min. Raman Shift';
 
-            % Create CCDTempEditFieldLabel
-            app.CCDTempEditFieldLabel = uilabel(app.GridLayout2);
-            app.CCDTempEditFieldLabel.HorizontalAlignment = 'right';
-            app.CCDTempEditFieldLabel.FontSize = 18;
-            app.CCDTempEditFieldLabel.Visible = 'off';
-            app.CCDTempEditFieldLabel.Layout.Row = 1;
-            app.CCDTempEditFieldLabel.Layout.Column = 1;
-            app.CCDTempEditFieldLabel.Text = 'CCD Temp';
+            % Create MaxRamanShiftEditField
+            app.MaxRamanShiftEditField = uieditfield(app.GridLayout3, 'numeric');
+            app.MaxRamanShiftEditField.Limits = [0 Inf];
+            app.MaxRamanShiftEditField.ValueDisplayFormat = '%11.4g nm';
+            app.MaxRamanShiftEditField.ValueChangedFcn = createCallbackFcn(app, @MaxRamanShiftEditFieldValueChanged, true);
+            app.MaxRamanShiftEditField.FontSize = 18;
+            app.MaxRamanShiftEditField.Visible = 'off';
+            app.MaxRamanShiftEditField.Layout.Row = 5;
+            app.MaxRamanShiftEditField.Layout.Column = 4;
+            app.MaxRamanShiftEditField.Value = 3000;
+
+            % Create MaxRamanShiftEditFieldLabel
+            app.MaxRamanShiftEditFieldLabel = uilabel(app.GridLayout3);
+            app.MaxRamanShiftEditFieldLabel.HorizontalAlignment = 'right';
+            app.MaxRamanShiftEditFieldLabel.FontSize = 18;
+            app.MaxRamanShiftEditFieldLabel.Visible = 'off';
+            app.MaxRamanShiftEditFieldLabel.Layout.Row = 5;
+            app.MaxRamanShiftEditFieldLabel.Layout.Column = [2 3];
+            app.MaxRamanShiftEditFieldLabel.Text = 'Max. Raman Shift';
 
             % Create CCDTempEditField
-            app.CCDTempEditField = uieditfield(app.GridLayout2, 'numeric');
+            app.CCDTempEditField = uieditfield(app.GridLayout3, 'numeric');
             app.CCDTempEditField.ValueDisplayFormat = '%11.4g C';
             app.CCDTempEditField.ValueChangedFcn = createCallbackFcn(app, @CCDTempEditFieldValueChanged, true);
             app.CCDTempEditField.FontSize = 18;
             app.CCDTempEditField.Visible = 'off';
-            app.CCDTempEditField.Layout.Row = 1;
-            app.CCDTempEditField.Layout.Column = 2;
+            app.CCDTempEditField.Layout.Row = 3;
+            app.CCDTempEditField.Layout.Column = 4;
             app.CCDTempEditField.Value = -70;
 
-            % Create SlitWidthEditFieldLabel
-            app.SlitWidthEditFieldLabel = uilabel(app.GridLayout2);
-            app.SlitWidthEditFieldLabel.HorizontalAlignment = 'right';
-            app.SlitWidthEditFieldLabel.FontSize = 18;
-            app.SlitWidthEditFieldLabel.Visible = 'off';
-            app.SlitWidthEditFieldLabel.Layout.Row = 2;
-            app.SlitWidthEditFieldLabel.Layout.Column = 1;
-            app.SlitWidthEditFieldLabel.Text = 'Slit Width';
+            % Create CCDTempEditFieldLabel
+            app.CCDTempEditFieldLabel = uilabel(app.GridLayout3);
+            app.CCDTempEditFieldLabel.HorizontalAlignment = 'right';
+            app.CCDTempEditFieldLabel.FontSize = 18;
+            app.CCDTempEditFieldLabel.Visible = 'off';
+            app.CCDTempEditFieldLabel.Layout.Row = 3;
+            app.CCDTempEditFieldLabel.Layout.Column = 3;
+            app.CCDTempEditFieldLabel.Text = 'CCD Temp';
 
             % Create SlitWidthEditField
-            app.SlitWidthEditField = uieditfield(app.GridLayout2, 'numeric');
+            app.SlitWidthEditField = uieditfield(app.GridLayout3, 'numeric');
             app.SlitWidthEditField.Limits = [0 Inf];
             app.SlitWidthEditField.ValueDisplayFormat = '%.2f um';
             app.SlitWidthEditField.ValueChangedFcn = createCallbackFcn(app, @SlitWidthEditFieldValueChanged, true);
             app.SlitWidthEditField.FontSize = 18;
             app.SlitWidthEditField.Visible = 'off';
             app.SlitWidthEditField.Layout.Row = 2;
-            app.SlitWidthEditField.Layout.Column = 2;
+            app.SlitWidthEditField.Layout.Column = 4;
             app.SlitWidthEditField.Value = 150;
 
-            % Create MinRamanShiftEditFieldLabel
-            app.MinRamanShiftEditFieldLabel = uilabel(app.GridLayout2);
-            app.MinRamanShiftEditFieldLabel.HorizontalAlignment = 'right';
-            app.MinRamanShiftEditFieldLabel.FontSize = 18;
-            app.MinRamanShiftEditFieldLabel.Visible = 'off';
-            app.MinRamanShiftEditFieldLabel.Layout.Row = 1;
-            app.MinRamanShiftEditFieldLabel.Layout.Column = 3;
-            app.MinRamanShiftEditFieldLabel.Text = 'Min. Raman Shift';
-
-            % Create MinRamanShiftEditField
-            app.MinRamanShiftEditField = uieditfield(app.GridLayout2, 'numeric');
-            app.MinRamanShiftEditField.Limits = [0 Inf];
-            app.MinRamanShiftEditField.ValueDisplayFormat = '%11.4g nm';
-            app.MinRamanShiftEditField.ValueChangedFcn = createCallbackFcn(app, @MinRamanShiftEditFieldValueChanged, true);
-            app.MinRamanShiftEditField.FontSize = 18;
-            app.MinRamanShiftEditField.Visible = 'off';
-            app.MinRamanShiftEditField.Layout.Row = 1;
-            app.MinRamanShiftEditField.Layout.Column = 4;
-
-            % Create MaxRamanShiftEditFieldLabel
-            app.MaxRamanShiftEditFieldLabel = uilabel(app.GridLayout2);
-            app.MaxRamanShiftEditFieldLabel.HorizontalAlignment = 'right';
-            app.MaxRamanShiftEditFieldLabel.FontSize = 18;
-            app.MaxRamanShiftEditFieldLabel.Visible = 'off';
-            app.MaxRamanShiftEditFieldLabel.Layout.Row = 2;
-            app.MaxRamanShiftEditFieldLabel.Layout.Column = 3;
-            app.MaxRamanShiftEditFieldLabel.Text = 'Max. Raman Shift';
-
-            % Create MaxRamanShiftEditField
-            app.MaxRamanShiftEditField = uieditfield(app.GridLayout2, 'numeric');
-            app.MaxRamanShiftEditField.Limits = [0 Inf];
-            app.MaxRamanShiftEditField.ValueDisplayFormat = '%11.4g nm';
-            app.MaxRamanShiftEditField.ValueChangedFcn = createCallbackFcn(app, @MaxRamanShiftEditFieldValueChanged, true);
-            app.MaxRamanShiftEditField.FontSize = 18;
-            app.MaxRamanShiftEditField.Visible = 'off';
-            app.MaxRamanShiftEditField.Layout.Row = 2;
-            app.MaxRamanShiftEditField.Layout.Column = 4;
-            app.MaxRamanShiftEditField.Value = 3000;
+            % Create SlitWidthEditFieldLabel
+            app.SlitWidthEditFieldLabel = uilabel(app.GridLayout3);
+            app.SlitWidthEditFieldLabel.HorizontalAlignment = 'right';
+            app.SlitWidthEditFieldLabel.FontSize = 18;
+            app.SlitWidthEditFieldLabel.Visible = 'off';
+            app.SlitWidthEditFieldLabel.Layout.Row = 2;
+            app.SlitWidthEditFieldLabel.Layout.Column = 3;
+            app.SlitWidthEditFieldLabel.Text = 'Slit Width';
 
             % Create PanelDisplay
             app.PanelDisplay = uipanel(app.GridLayout);

@@ -29,6 +29,7 @@ classdef calibration_exported < matlab.apps.AppBase
         function CalibrateButtonPushed(app, event)
 %             if app.spectrometerHandle.CCDCooled == 1
                 app.CallingApp.CalibrationDone = true;
+                app.CallingApp.LaserHandle.turn_on();
                 %integration time is 1s, rest is standard
 %                 expTime = app.CallingApp.spectrometerHandle.ExposureTime;
 %                 app.CallingApp.spectrometerHandle.setExposureTime(1.0);
@@ -40,6 +41,8 @@ classdef calibration_exported < matlab.apps.AppBase
                   plot(app.CalibrationAxes,w,s,'r-');
 
 %                 app.CallingApp.spectrometerHandle.setExposureTime(expTime);
+                app.CallingApp.LaserHandle.turn_off();
+
 %             else
 %                 uialert(app.CalibrationUIFigure, "CCD not fully cooled!","Calibration Warning","Icon","warning");
 %             end

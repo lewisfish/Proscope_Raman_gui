@@ -84,11 +84,14 @@ classdef Raman_box_laser < handle
         end
 
         function turn_off(obj)
-
             obj.send_cmd(obj.LASER_OFF);
-            clear obj.SerialPort;
         end
 
+        function shutdown(obj)
+            obj.turn_off();
+            clear obj.SerialPort;
+        end
+        
         function set_power(obj, power)
             msg = replace(obj.OPTICAL_REF_POWER, "XXX", num2str(power, "%3i"));
             obj.send_cmd(msg);
