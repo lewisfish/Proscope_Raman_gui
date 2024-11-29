@@ -27,25 +27,22 @@ classdef calibration_exported < matlab.apps.AppBase
 
         % Button pushed function: CalibrateButton
         function CalibrateButtonPushed(app, event)
-%             if app.spectrometerHandle.CCDCooled == 1
+            if app.spectrometerHandle.CCDCooled == 1
                 app.CallingApp.CalibrationDone = true;
                 app.CallingApp.LaserHandle.turn_on();
                 %integration time is 1s, rest is standard
-%                 expTime = app.CallingApp.spectrometerHandle.ExposureTime;
-%                 app.CallingApp.spectrometerHandle.setExposureTime(1.0);
-%                 [w, s] = app.CallingApp.spectrometerHandle.AquireSpectra();
-                  w = linspace(0, 3000, 3000)';
-                  s = randn(3000, 1);
+                expTime = app.CallingApp.spectrometerHandle.ExposureTime;
+                app.CallingApp.spectrometerHandle.setExposureTime(1.0);
+                [w, s] = app.CallingApp.spectrometerHandle.AquireSpectra();
                   app.CallingApp.saveData(w, s, app.CallingApp.CalibrationSaveDir, 'calibration');
-%                 plot(app.CalibrationAxes, w, s, 'r-');
                   plot(app.CalibrationAxes,w,s,'r-');
 
-%                 app.CallingApp.spectrometerHandle.setExposureTime(expTime);
+                app.CallingApp.spectrometerHandle.setExposureTime(expTime);
                 app.CallingApp.LaserHandle.turn_off();
 
-%             else
-%                 uialert(app.CalibrationUIFigure, "CCD not fully cooled!","Calibration Warning","Icon","warning");
-%             end
+            else
+                uialert(app.CalibrationUIFigure, "CCD not fully cooled!","Calibration Warning","Icon","warning");
+            end
         end
 
         % Button pushed function: SetSavePathButton

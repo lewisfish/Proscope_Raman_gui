@@ -38,8 +38,6 @@ classdef main_exported < matlab.apps.AppBase
         tmr % Timer class
         LaserHandle % Laser class
         spectrometerHandle % spectrometer class
-%         WMRS = false % Flag set to true if WRMS mode is active.
-        steps =5% number of spectra to take for WRMS mode.
         abortSignal = false % abort acquistion
     end
     properties (Access = public)
@@ -87,15 +85,11 @@ classdef main_exported < matlab.apps.AppBase
                             'StartDelay',0,... % In seconds.
                             'TasksToExecute',inf,...  % number of times to update
                             'ExecutionMode','fixedSpacing');
-% old
-%             app.LaserHandle = Laser();
-%             app.LaserHandle.enableLaserHeaterPower();
-% new
             app.LaserHandle = Raman_box_laser();
-%             app.LaserHandle.turn_on();
+            app.LaserHandle.turn_on();
             
             %add spectrometer setup here
-%             app.spectrometerHandle = Andor(-70.0, 1, 1.00, 0, 0, 1, 150, 785.0, app.RamanControlUIFigure);
+            app.spectrometerHandle = Andor(-70.0, 1, 1.00, 0, 0, 1, 150, 785.0, app.RamanControlUIFigure);
             
             %set up spectra viewer
             app.AquireAxes.XLim = [app.MinRamanShiftEditField.Value, app.MaxRamanShiftEditField.Value];
@@ -117,10 +111,9 @@ classdef main_exported < matlab.apps.AppBase
                     end
                     app.LaserHandle.turn_on();
 %                       single spectra mode
-%                         [w, s] = app.spectrometerHandle.AquireSpectra();
-%                         saveData(app, w, s, app.SpectraSaveDir);
-%                         plot(app.AquireAxes, w, s, 'r-');
-                          plot(app.AquireAxes,linspace(0, 3000, 3000)',randn(3000, 1),'r-');
+                        [w, s] = app.spectrometerHandle.AquireSpectra();
+                        saveData(app, w, s, app.SpectraSaveDir);
+                        plot(app.AquireAxes, w, s, 'r-');
 
                         app.SpectraAcquired = app.SpectraAcquired + 1;
                         app.SpectraAcquiredEditField.Value = app.SpectraAcquired;
@@ -202,8 +195,7 @@ classdef main_exported < matlab.apps.AppBase
         function UIFigureCloseRequest(app, event)
             answer = questdlg("Do you want to shutdown the software?");
             if answer == "Yes"
-%                 app.spectrometerHandle.ShutDownSafe(app.RamanControlUIFigure);
-%                 app.LaserHandle.switchOff();
+                app.spectrometerHandle.ShutDownSafe(app.RamanControlUIFigure);
                 app.LaserHandle.shutdown();
                 stop(app.tmr);
                 delete(app.tmr);
